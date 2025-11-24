@@ -48,9 +48,9 @@ export async function GET() {
 
   try {
     // Test database connection
-    const dbConnected = await testConnection();
+    const connectionResult = await testConnection();
     
-    if (dbConnected) {
+    if (connectionResult.success) {
       healthStatus.status = "healthy";
       healthStatus.database.connected = true;
       
@@ -66,11 +66,24 @@ export async function GET() {
       }
     } else {
       healthStatus.status = "degraded";
-      healthStatus.database.error = "Database connection test failed";
+      healthStatus.database.connected = false;
       
-      const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
-      if (!connectionString) {
-        healthStatus.database.error = "No database connection string found (WEB_DATABASE_URL or DATABASE_URL not set)";
+      // Include detailed error information
+      if (connectionResult.error) {
+        const error = connectionResult.error;
+        const errorMessage = error.message || "Database connection test failed";
+        const errorCode = error.code ? ` (${error.code})` : "";
+        healthStatus.database.error = `${errorMessage}${errorCode}`;
+        
+        // Add error details for debugging
+        if (error.detail) {
+          healthStatus.database.error += ` - ${error.detail}`;
+        }
+        if (error.hint) {
+          healthStatus.database.error += ` Hint: ${error.hint}`;
+        }
+      } else {
+        healthStatus.database.error = "Database connection test failed";
       }
     }
   } catch (error: any) {

@@ -37,8 +37,11 @@ function createPool(): Pool {
     let cleanConnectionString = connectionString
       .replace(/[?&]channel_binding=[^&]*/g, "");
     
-    // Remove existing sslmode parameter
+    // Remove existing sslmode parameter (we'll add it back)
     cleanConnectionString = cleanConnectionString.replace(/[?&]sslmode=[^&]*/g, "");
+    
+    // Remove trailing ? if present
+    cleanConnectionString = cleanConnectionString.replace(/\?$/, "");
     
     // Ensure sslmode is set to require
     const finalConnectionString = cleanConnectionString.includes("?")
@@ -46,20 +49,23 @@ function createPool(): Pool {
       : `${cleanConnectionString}?sslmode=require`;
 
     console.log("[db] Connecting to Neon database with SSL");
-    console.log("[db] Connection string preview:", finalConnectionString.substring(0, 50) + "...");
+    console.log("[db] Connection string preview:", finalConnectionString.substring(0, 80) + "...");
+    console.log("[db] Using pooler connection:", finalConnectionString.includes("-pooler"));
     
     const poolConfig = {
       connectionString: finalConnectionString,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 15000, // Increased timeout for Render
-      // Explicitly enable SSL for Neon
+      connectionTimeoutMillis: 20000, // Increased timeout for Render/Neon
+      // Explicitly enable SSL for Neon - required for all Neon connections
       ssl: {
         rejectUnauthorized: false,
       },
       // Add keepalive to prevent connection drops
       keepAlive: true,
       keepAliveInitialDelayMillis: 10000,
+      // Allow exit on idle for better connection management
+      allowExitOnIdle: false,
     };
     
     return new Pool(poolConfig);
@@ -137,8 +143,8 @@ try {
 
 export { pool };
 
-// Test database connection
-export async function testConnection(): Promise<boolean> {
+// Test database connection with detailed error info
+export async function testConnection(): Promise<{ success: boolean; error?: any }> {
   try {
     console.log("[db] Testing database connection...");
     const startTime = Date.now();
@@ -149,15 +155,19 @@ export async function testConnection(): Promise<boolean> {
       timestamp: result.rows[0]?.now,
       version: result.rows[0]?.version?.substring(0, 50)
     });
-    return true;
+    return { success: true };
   } catch (error: any) {
-    console.error("[db] Database connection failed:", {
+    const errorInfo = {
       message: error?.message,
       code: error?.code,
       name: error?.name,
       severity: error?.severity,
       detail: error?.detail,
       hint: error?.hint,
+    };
+    
+    console.error("[db] Database connection failed:", {
+      ...errorInfo,
       position: error?.position,
       internalPosition: error?.internalPosition,
       internalQuery: error?.internalQuery,
@@ -183,7 +193,7 @@ export async function testConnection(): Promise<boolean> {
       isNeon: connectionString?.includes("neon.tech") || connectionString?.includes("neon"),
     });
     
-    return false;
+    return { success: false, error: errorInfo };
   }
 }
 

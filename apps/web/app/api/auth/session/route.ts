@@ -5,8 +5,8 @@ import { testConnection } from "../../../../lib/db";
 export async function GET(request: NextRequest) {
   try {
     // Test database connection first
-    const dbConnected = await testConnection();
-    if (!dbConnected) {
+    const connectionResult = await testConnection();
+    if (!connectionResult.success) {
       console.error("[Session API] Database connection test failed");
       return NextResponse.json({ 
         user: null, 

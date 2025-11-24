@@ -5,8 +5,8 @@ import { testConnection } from "../../../../lib/db";
 export async function POST(request: NextRequest) {
   try {
     // Test database connection first
-    const dbConnected = await testConnection();
-    if (!dbConnected) {
+    const connectionResult = await testConnection();
+    if (!connectionResult.success) {
       console.error("[Login] Database connection test failed");
       const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
       const hasConnectionString = !!connectionString;
