@@ -35,7 +35,7 @@
     "prisma:deploy": "npm run prisma:deploy --workspaces --if-present",
     "prisma:seed": "npm run prisma:seed --workspaces --if-present",
     "start": "npm run start --workspaces --if-present",
-    "start:all": "concurrently \"npm run start --workspace @tsg/orders-service\" \"npm run start --workspace @tsg/vendor-service\" \"npm run start --workspace @tsg/wallet-service\" \"npm run start --workspace @tsg/api-gateway\" \"npm run start --workspace apps/web\"",
+    "start:all": "concurrently -n orders,vendor,wallet,gateway,web -c blue,green,yellow,red,magenta \"PORT=4001 npm run start --workspace @tsg/orders-service\" \"PORT=4002 npm run start --workspace @tsg/vendor-service\" \"PORT=4003 npm run start --workspace @tsg/wallet-service\" \"PORT=4000 npm run start --workspace @tsg/api-gateway\" \"PORT=3000 npm run start --workspace apps/web\"",
     "build:all": "npm run build --workspace @tsg/shared && npm run build:orders && npm run build:vendor && npm run build:wallet && npm run build:gateway && npm run build --workspace apps/web"
   },
   "engines": {
