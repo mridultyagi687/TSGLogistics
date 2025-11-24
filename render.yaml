@@ -1,5 +1,7 @@
 services:
   # Single Web Service - All services run together
+  # Next.js web app is the main entry point (exposed to internet)
+  # Other services run on localhost ports
   - type: web
     name: tsg-logistics
     env: node
@@ -9,22 +11,22 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Orders Service
+      # Orders Service (runs on localhost:4001)
       - key: ORDERS_PORT
         value: "4001"
       - key: ORDERS_DATABASE_URL
         sync: false
-      # Vendor Service
+      # Vendor Service (runs on localhost:4002)
       - key: VENDOR_PORT
         value: "4002"
       - key: VENDOR_DATABASE_URL
         sync: false
-      # Wallet Service
+      # Wallet Service (runs on localhost:4003)
       - key: WALLET_PORT
         value: "4003"
       - key: WALLET_DATABASE_URL
         sync: false
-      # API Gateway
+      # API Gateway (runs on localhost:4000, proxied by Next.js)
       - key: PORT
         value: "4000"
       - key: ORDERS_SERVICE_URL
@@ -37,10 +39,14 @@ services:
         value: https://tsg-logistics.onrender.com
       - key: TELEMETRY_CHANNEL
         value: telemetry:gateway:events
-      # Web App
+      # Web App (Next.js - main entry point, runs on Render's assigned PORT)
       - key: NEXT_PUBLIC_GATEWAY_URL
         value: http://localhost:4000
       - key: WEB_DATABASE_URL
         sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: TELEMETRY_CHANNEL
+        value: telemetry:gateway:events
       - key: AUTH_SECRET
         generateValue: true
