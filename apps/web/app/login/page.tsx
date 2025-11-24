@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SwiggyButton, SwiggyInput } from "../components/swiggy-ui";
 import { ThemeToggle } from "../components/theme-toggle";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
@@ -20,19 +20,27 @@ export default function LoginPage() {
     async function checkSession() {
       try {
         const response = await fetch("/api/auth/session");
+        if (!response.ok) {
+          // API error - continue to show login form
+          setIsCheckingSession(false);
+          return;
+        }
         const data = await response.json();
         if (data.user) {
           const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
           router.push(callbackUrl as any);
+          return;
         }
-      } catch {
-        // Not logged in
+      } catch (err) {
+        // Network or other error - continue to show login form
+        console.error("Session check error:", err);
       } finally {
         setIsCheckingSession(false);
       }
     }
     checkSession();
-  }, [router, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount - searchParams changes handled in handleSubmit
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +66,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Invalid username or password");
+        // Show specific error messages for different error types
+        let errorMessage = data.error || "Invalid username or password";
+        if (response.status === 503 && data.message) {
+          // Database connection error
+          errorMessage = data.message;
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        setError(errorMessage);
         setIsLoading(false);
         return;
       }
@@ -71,7 +87,11 @@ export default function LoginPage() {
       }, 50);
     } catch (err) {
       console.error("Login error:", err);
-      setError("Failed to sign in. Please try again.");
+      setError(
+        err instanceof Error 
+          ? `Failed to sign in: ${err.message}` 
+          : "Failed to sign in. Please check your connection and try again."
+      );
       setIsLoading(false);
     }
   };
@@ -311,5 +331,22 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pink-200 opacity-10 blur-3xl"></div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 mb-4"></div>
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

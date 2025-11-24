@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "../../../../lib/auth-simple";
+import { testConnection } from "../../../../lib/db";
 
 export async function GET(request: NextRequest) {
   try {
+    // Test database connection first
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.error("[Session API] Database connection test failed");
+      return NextResponse.json({ 
+        user: null, 
+        error: "Database connection failed",
+        message: "Unable to connect to the database"
+      });
+    }
+
     // Read cookie from request (works in API routes)
     const sessionId = request.cookies.get("session_id")?.value;
 
@@ -45,7 +57,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Session API] Error:", error);
-    return NextResponse.json({ user: null, error: error instanceof Error ? error.message : "Unknown error" });
+    return NextResponse.json({ 
+      user: null, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 }
 

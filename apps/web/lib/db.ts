@@ -15,19 +15,30 @@ function createPool(): Pool {
   const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
 
   if (!connectionString) {
-    throw new Error("DATABASE_URL or WEB_DATABASE_URL environment variable is not set");
+    const errorMsg = `DATABASE_URL or WEB_DATABASE_URL environment variable is not set. Available env vars: ${Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('DB')).join(', ') || 'none'}`;
+    console.error("[db]", errorMsg);
+    throw new Error(errorMsg);
   }
 
   const isProduction = process.env.NODE_ENV === "production";
-  const isNeon = connectionString.includes("neon.tech");
+  const isNeon = connectionString.includes("neon.tech") || connectionString.includes("neon");
+
+  console.log("[db] Initializing connection pool", {
+    isNeon,
+    isProduction,
+    hasConnectionString: !!connectionString,
+    connectionStringPreview: connectionString ? `${connectionString.substring(0, 30)}...` : 'none'
+  });
 
   // For Neon, always use connection string with SSL explicitly configured
   // This ensures SSL is properly enabled even with connection string parameters
   if (isNeon) {
     // Remove channel_binding parameter as it's not supported by pg
-    const cleanConnectionString = connectionString
-      .replace(/[?&]channel_binding=[^&]*/g, "")
-      .replace(/[?&]sslmode=require/g, ""); // Remove sslmode as we'll set SSL explicitly
+    let cleanConnectionString = connectionString
+      .replace(/[?&]channel_binding=[^&]*/g, "");
+    
+    // Remove existing sslmode parameter
+    cleanConnectionString = cleanConnectionString.replace(/[?&]sslmode=[^&]*/g, "");
     
     // Ensure sslmode is set to require
     const finalConnectionString = cleanConnectionString.includes("?")
@@ -35,17 +46,23 @@ function createPool(): Pool {
       : `${cleanConnectionString}?sslmode=require`;
 
     console.log("[db] Connecting to Neon database with SSL");
+    console.log("[db] Connection string preview:", finalConnectionString.substring(0, 50) + "...");
     
-    return new Pool({
+    const poolConfig = {
       connectionString: finalConnectionString,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 15000, // Increased timeout for Render
       // Explicitly enable SSL for Neon
       ssl: {
         rejectUnauthorized: false,
       },
-    });
+      // Add keepalive to prevent connection drops
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
+    };
+    
+    return new Pool(poolConfig);
   }
 
   // For other databases, try to parse the connection string
@@ -86,24 +103,71 @@ function createPool(): Pool {
   }
 }
 
-export const pool = globalForDb.pool ?? createPool();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.pool = pool;
+// Initialize pool with error handling
+let pool: Pool;
+try {
+  pool = globalForDb.pool ?? createPool();
+  if (process.env.NODE_ENV !== "production") {
+    globalForDb.pool = pool;
+  }
+} catch (error: any) {
+  console.error("[db] Failed to initialize database pool:", error);
+  // Create a dummy pool that will fail gracefully on queries
+  pool = new Pool({
+    connectionString: "postgresql://invalid",
+    max: 1,
+  });
+  console.error("[db] Created fallback pool. Database queries will fail until connection is configured.");
 }
+
+export { pool };
 
 // Test database connection
 export async function testConnection(): Promise<boolean> {
   try {
-    const result = await pool.query("SELECT NOW() as now");
-    console.log("[db] Database connection successful");
+    console.log("[db] Testing database connection...");
+    const startTime = Date.now();
+    const result = await pool.query("SELECT NOW() as now, version() as version");
+    const duration = Date.now() - startTime;
+    console.log("[db] Database connection successful", {
+      duration: `${duration}ms`,
+      timestamp: result.rows[0]?.now,
+      version: result.rows[0]?.version?.substring(0, 50)
+    });
     return true;
   } catch (error: any) {
     console.error("[db] Database connection failed:", {
       message: error?.message,
       code: error?.code,
+      name: error?.name,
+      severity: error?.severity,
+      detail: error?.detail,
+      hint: error?.hint,
+      position: error?.position,
+      internalPosition: error?.internalPosition,
+      internalQuery: error?.internalQuery,
+      where: error?.where,
+      schema: error?.schema,
+      table: error?.table,
+      column: error?.column,
+      dataType: error?.dataType,
+      constraint: error?.constraint,
+      file: error?.file,
+      line: error?.line,
+      routine: error?.routine,
       stack: error?.stack,
     });
+    
+    // Log environment info for debugging
+    const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
+    console.error("[db] Environment info:", {
+      hasWEB_DATABASE_URL: !!process.env.WEB_DATABASE_URL,
+      hasDATABASE_URL: !!process.env.DATABASE_URL,
+      connectionStringPreview: connectionString ? `${connectionString.substring(0, 50)}...` : 'none',
+      nodeEnv: process.env.NODE_ENV,
+      isNeon: connectionString?.includes("neon.tech") || connectionString?.includes("neon"),
+    });
+    
     return false;
   }
 }
