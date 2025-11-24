@@ -109,36 +109,47 @@ function createPool(): Pool {
   }
 }
 
-// Initialize pool with error handling
+// Initialize pool as singleton - reuse existing pool if available
 let pool: Pool;
-let poolInitializationError: Error | null = null;
-try {
-  pool = globalForDb.pool ?? createPool();
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.pool = pool;
+
+// Check if pool already exists in global scope (reuse across module reloads)
+if (globalForDb.pool) {
+  pool = globalForDb.pool;
+  // Only log once if we're reusing an existing pool
+  if (process.env.NODE_ENV === "development") {
+    console.log("[db] Reusing existing database pool from global scope");
   }
-  console.log("[db] Database pool initialized successfully");
-} catch (error: any) {
-  poolInitializationError = error;
-  console.error("[db] Failed to initialize database pool:", {
-    message: error?.message,
-    code: error?.code,
-    stack: error?.stack
-  });
-  
-  const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
-  console.error("[db] Connection string status:", {
-    hasWEB_DATABASE_URL: !!process.env.WEB_DATABASE_URL,
-    hasDATABASE_URL: !!process.env.DATABASE_URL,
-    connectionStringPreview: connectionString ? `${connectionString.substring(0, 30)}...` : 'NOT SET'
-  });
-  
-  // Create a dummy pool that will fail gracefully on queries
-  pool = new Pool({
-    connectionString: "postgresql://invalid",
-    max: 1,
-  });
-  console.error("[db] Created fallback pool. Database queries will fail until connection is configured.");
+} else {
+  // Create new pool
+  try {
+    pool = createPool();
+    // Always cache in global scope to prevent multiple pool creation
+    globalForDb.pool = pool;
+    
+    // Only log once per actual pool creation
+    const poolId = Math.random().toString(36).substring(7);
+    console.log(`[db] Database pool initialized successfully [${poolId}]`);
+  } catch (error: any) {
+    console.error("[db] Failed to initialize database pool:", {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack
+    });
+    
+    const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
+    console.error("[db] Connection string status:", {
+      hasWEB_DATABASE_URL: !!process.env.WEB_DATABASE_URL,
+      hasDATABASE_URL: !!process.env.DATABASE_URL,
+      connectionStringPreview: connectionString ? `${connectionString.substring(0, 30)}...` : 'NOT SET'
+    });
+    
+    // Create a dummy pool that will fail gracefully on queries
+    pool = new Pool({
+      connectionString: "postgresql://invalid",
+      max: 1,
+    });
+    console.error("[db] Created fallback pool. Database queries will fail until connection is configured.");
+  }
 }
 
 export { pool };
