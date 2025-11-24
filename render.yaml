@@ -27,7 +27,7 @@ services:
       - key: WALLET_DATABASE_URL
         sync: false
       # API Gateway (runs on localhost:4000, proxied by Next.js)
-      - key: PORT
+      - key: GATEWAY_PORT
         value: "4000"
       - key: ORDERS_SERVICE_URL
         value: http://localhost:4001

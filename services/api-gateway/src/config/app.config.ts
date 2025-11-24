@@ -1,6 +1,6 @@
 const configuration = () => ({
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  PORT: parseInt(process.env.PORT ?? "4000", 10),
+  PORT: parseInt(process.env.GATEWAY_PORT ?? process.env.PORT ?? "4000", 10),
   ORDERS_SERVICE_URL:
     process.env.ORDERS_SERVICE_URL ?? "http://localhost:4001",
   VENDOR_SERVICE_URL:
