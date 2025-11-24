@@ -1,6 +1,5 @@
 services:
-  # PostgreSQL Database (using Neon)
-  # Note: Neon database should be created separately and DATABASE_URL provided as env var
+  # All services are web services - no Redis needed!
 
   # API Gateway
   - type: web
@@ -30,14 +29,7 @@ services:
           type: web
           property: host
       - key: CORS_ORIGINS
-        value: https://tsg-logistics.onrender.com
-      # REDIS_URL is optional - services work without it
-      # Uncomment if you have Redis available
-      # - key: REDIS_URL
-      #   fromService:
-      #     name: tsg-redis
-      #     type: redis
-      #     property: connectionString
+        value: https://tsg-web.onrender.com
       - key: TELEMETRY_CHANNEL
         value: telemetry:gateway:events
       - key: DATABASE_URL
@@ -115,22 +107,7 @@ services:
           property: host
       - key: DATABASE_URL
         sync: false
-      # REDIS_URL is optional - services work without it
-      # Uncomment if you have Redis available
-      # - key: REDIS_URL
-      #   fromService:
-      #     name: tsg-redis
-      #     type: redis
-      #     property: connectionString
       - key: TELEMETRY_CHANNEL
         value: telemetry:gateway:events
       - key: AUTH_SECRET
         generateValue: true
-
-  # Redis (for caching and telemetry) - OPTIONAL
-  # Uncomment if Redis is available in your Render plan
-  # If not available, services will work fine without it
-  # - type: redis
-  #   name: tsg-redis
-  #   plan: starter
-  #   maxmemoryPolicy: allkeys-lru
