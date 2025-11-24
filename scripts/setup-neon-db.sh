@@ -22,17 +22,28 @@ echo "📦 Creating database schemas..."
 echo ""
 
 # Extract base connection string (without schema)
-BASE_URL=$(echo $DATABASE_URL | sed 's/[?&]schema=[^&]*//')
+# Handle both ?schema= and &schema= formats
+BASE_URL=$(echo $DATABASE_URL | sed 's/[?&]schema=[^&]*//' | sed 's/[?&]channel_binding=[^&]*//')
 
-# Create schemas
-psql "$BASE_URL" <<EOF
+# Add channel_binding back if it was in the original URL
+if [[ $DATABASE_URL == *"channel_binding"* ]]; then
+    BASE_URL="${BASE_URL}&channel_binding=require"
+fi
+
+echo "Using base URL: ${BASE_URL}"
+echo ""
+
+# Create schemas using psql if available, otherwise provide SQL
+if command -v psql &> /dev/null; then
+    echo "Creating schemas with psql..."
+    psql "$BASE_URL" <<EOF
 -- Create required schemas
 CREATE SCHEMA IF NOT EXISTS orders;
 CREATE SCHEMA IF NOT EXISTS vendors;
 CREATE SCHEMA IF NOT EXISTS wallet;
 CREATE SCHEMA IF NOT EXISTS auth;
 
--- Grant permissions (adjust username as needed)
+-- Grant permissions
 GRANT ALL PRIVILEGES ON SCHEMA orders TO current_user;
 GRANT ALL PRIVILEGES ON SCHEMA vendors TO current_user;
 GRANT ALL PRIVILEGES ON SCHEMA wallet TO current_user;
@@ -44,20 +55,54 @@ FROM information_schema.schemata
 WHERE schema_name IN ('orders', 'vendors', 'wallet', 'auth');
 EOF
 
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "✅ Database schemas created successfully!"
-    echo ""
-    echo "Next steps:"
-    echo "1. Run migrations for each service:"
-    echo "   - Orders: DATABASE_URL='$BASE_URL?schema=orders' npm run prisma:migrate --workspace @tsg/orders-service"
-    echo "   - Vendor: DATABASE_URL='$BASE_URL?schema=vendors' npm run prisma:migrate --workspace @tsg/vendor-service"
-    echo "   - Wallet: DATABASE_URL='$BASE_URL?schema=wallet' npm run prisma:migrate --workspace @tsg/wallet-service"
-    echo ""
-    echo "2. Set up auth tables (run apps/web/prisma/init.sql)"
+    if [ $? -eq 0 ]; then
+        echo ""
+        echo "✅ Database schemas created successfully!"
+    else
+        echo ""
+        echo "❌ Error creating schemas. Please check your DATABASE_URL and try again."
+        exit 1
+    fi
 else
+    echo "⚠️  psql not found. Please run this SQL manually in Neon SQL Editor:"
     echo ""
-    echo "❌ Error creating schemas. Please check your DATABASE_URL and try again."
-    exit 1
+    echo "=========================================="
+    echo "SQL to run in Neon SQL Editor:"
+    echo "=========================================="
+    cat <<'SQL'
+-- Create required schemas
+CREATE SCHEMA IF NOT EXISTS orders;
+CREATE SCHEMA IF NOT EXISTS vendors;
+CREATE SCHEMA IF NOT EXISTS wallet;
+CREATE SCHEMA IF NOT EXISTS auth;
+
+-- Grant permissions
+GRANT ALL PRIVILEGES ON SCHEMA orders TO neondb_owner;
+GRANT ALL PRIVILEGES ON SCHEMA vendors TO neondb_owner;
+GRANT ALL PRIVILEGES ON SCHEMA wallet TO neondb_owner;
+GRANT ALL PRIVILEGES ON SCHEMA auth TO neondb_owner;
+SQL
+    echo ""
+    echo "=========================================="
 fi
 
+echo ""
+echo "📋 Connection strings for each service:"
+echo ""
+echo "Orders Service:"
+echo "${BASE_URL}&schema=orders"
+echo ""
+echo "Vendor Service:"
+echo "${BASE_URL}&schema=vendors"
+echo ""
+echo "Wallet Service:"
+echo "${BASE_URL}&schema=wallet"
+echo ""
+echo "Web App (Auth):"
+echo "${BASE_URL}&schema=auth"
+echo ""
+echo "✅ Setup complete!"
+echo ""
+echo "Next steps:"
+echo "1. Copy the connection strings above to your Render environment variables"
+echo "2. Run migrations in each service after deployment"
