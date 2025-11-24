@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { redirect } from "next/navigation";
 import { createVendorAction } from "../actions";
 import { requireAuth } from "../../../lib/require-auth";

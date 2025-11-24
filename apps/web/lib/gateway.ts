@@ -47,7 +47,7 @@ export async function gatewayFetch(
     cache: "no-store",
     credentials: rest.credentials ?? "include",
     headers,
-    next: { revalidate: 0, ...(rest.next ?? {}) }
+    next: rest.next
   });
 
   return response;

@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import type { Trip } from "@tsg/shared";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";

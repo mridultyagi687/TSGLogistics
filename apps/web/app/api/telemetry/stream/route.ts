@@ -4,6 +4,10 @@ import { fetchLoads } from "../../../../lib/loads";
 import { fetchTrips } from "../../../../lib/trips";
 import type { GatewaySnapshot } from "../../../../lib/snapshot";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 const encoder = new TextEncoder();
 const HEARTBEAT_MS = 15000;
 
