@@ -31,11 +31,13 @@ services:
           property: host
       - key: CORS_ORIGINS
         value: https://tsg-logistics.onrender.com
-      - key: REDIS_URL
-        fromService:
-          name: tsg-redis
-          type: redis
-          property: connectionString
+      # REDIS_URL is optional - services work without it
+      # Uncomment if you have Redis available
+      # - key: REDIS_URL
+      #   fromService:
+      #     name: tsg-redis
+      #     type: redis
+      #     property: connectionString
       - key: TELEMETRY_CHANNEL
         value: telemetry:gateway:events
       - key: DATABASE_URL
@@ -113,11 +115,13 @@ services:
           property: host
       - key: DATABASE_URL
         sync: false
-      - key: REDIS_URL
-        fromService:
-          name: tsg-redis
-          type: redis
-          property: connectionString
+      # REDIS_URL is optional - services work without it
+      # Uncomment if you have Redis available
+      # - key: REDIS_URL
+      #   fromService:
+      #     name: tsg-redis
+      #     type: redis
+      #     property: connectionString
       - key: TELEMETRY_CHANNEL
         value: telemetry:gateway:events
       - key: AUTH_SECRET
@@ -130,4 +134,3 @@ services:
   #   name: tsg-redis
   #   plan: starter
   #   maxmemoryPolicy: allkeys-lru
-
