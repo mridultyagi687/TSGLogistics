@@ -35,7 +35,7 @@
     "prisma:seed": "npm run prisma:seed --workspaces --if-present",
     "start": "npm run start --workspaces --if-present",
     "start:all": "concurrently -n orders,vendor,wallet,gateway,web -c blue,green,yellow,red,magenta --kill-others-on-fail \"ORDERS_PORT=4001 npm run start --workspace @tsg/orders-service\" \"VENDOR_PORT=4002 npm run start --workspace @tsg/vendor-service\" \"WALLET_PORT=4003 npm run start --workspace @tsg/wallet-service\" \"PORT=4000 npm run start --workspace @tsg/api-gateway\" \"npm run start --workspace apps/web\"",
-    "build:all": "npm run build --workspace @tsg/shared && npm run prisma:generate:orders && npm run prisma:generate:vendor && npm run prisma:generate:wallet && npm run build:orders && npm run build:vendor && npm run build:wallet && npm run build:gateway && npm run build --workspace apps/web"
+    "build:all": "npm run build --workspace @tsg/shared && npm run prisma:generate:orders && npm run build:orders && npm run prisma:generate:vendor && npm run build:vendor && npm run prisma:generate:wallet && npm run build:wallet && npm run build:gateway && npm run build --workspace apps/web"
   },
   "engines": {
     "node": ">=18.18",
