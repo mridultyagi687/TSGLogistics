@@ -208,11 +208,39 @@ export async function testConnection(): Promise<{ success: boolean; error?: any 
   }
 }
 
+// Helper function to get schema from connection string
+function getSchemaFromConnectionString(): string {
+  const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL ?? "";
+  const schemaMatch = connectionString.match(/[?&]schema=([^&]+)/);
+  return schemaMatch ? schemaMatch[1] : "public";
+}
+
+// Set search_path on connection pool initialization
+let searchPathSet = false;
+async function ensureSearchPath() {
+  if (searchPathSet) return;
+  
+  try {
+    const schema = getSchemaFromConnectionString();
+    await pool.query(`SET search_path TO ${schema}, public;`);
+    searchPathSet = true;
+    console.log(`[db] Set search_path to: ${schema}, public`);
+  } catch (error: any) {
+    console.error("[db] Failed to set search_path:", error?.message);
+    // Continue anyway - might work with default schema
+  }
+}
+
 // Helper function to execute queries
 export async function query<T extends Record<string, any> = any>(
   text: string,
   params?: any[]
 ): Promise<QueryResult<T>> {
+  // Ensure search_path is set before first query
+  if (!searchPathSet) {
+    await ensureSearchPath();
+  }
+  
   const start = Date.now();
   try {
     const res = await pool.query<T>(text, params);

@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
         })
       : undefined;
 
+    console.log("[Login] Attempting authentication for username:", username);
     const session = await authenticate(username, password, {
       userAgent,
       ipAddress,
@@ -74,11 +75,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (!session) {
+      console.log("[Login] Authentication failed for username:", username);
       return NextResponse.json(
         { error: "Invalid username or password" },
         { status: 401 }
       );
     }
+
+    console.log("[Login] Authentication successful for username:", username);
 
     // Determine redirect URL
     const callbackUrl = redirectTo || "/dashboard";
