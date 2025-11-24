@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "../../../../lib/auth-simple";
+import { testConnection } from "../../../../lib/db";
 
 export async function POST(request: NextRequest) {
   try {
+    // Test database connection first
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.error("[Login] Database connection test failed");
+      return NextResponse.json(
+        { 
+          error: "Database connection failed",
+          message: process.env.NODE_ENV === "development" 
+            ? "Unable to connect to the database. Check WEB_DATABASE_URL or DATABASE_URL environment variable and ensure the database is accessible."
+            : "Service temporarily unavailable. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
     // Parse request body (supports both JSON and form data)
     let body: any;
     const contentType = request.headers.get("content-type");

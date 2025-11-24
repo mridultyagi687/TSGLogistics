@@ -18,11 +18,39 @@ function createPool(): Pool {
     throw new Error("DATABASE_URL or WEB_DATABASE_URL environment variable is not set");
   }
 
-  // Parse connection string
+  const isProduction = process.env.NODE_ENV === "production";
+  const isNeon = connectionString.includes("neon.tech");
+
+  // For Neon, always use connection string with SSL explicitly configured
+  // This ensures SSL is properly enabled even with connection string parameters
+  if (isNeon) {
+    // Remove channel_binding parameter as it's not supported by pg
+    const cleanConnectionString = connectionString
+      .replace(/[?&]channel_binding=[^&]*/g, "")
+      .replace(/[?&]sslmode=require/g, ""); // Remove sslmode as we'll set SSL explicitly
+    
+    // Ensure sslmode is set to require
+    const finalConnectionString = cleanConnectionString.includes("?")
+      ? `${cleanConnectionString}&sslmode=require`
+      : `${cleanConnectionString}?sslmode=require`;
+
+    console.log("[db] Connecting to Neon database with SSL");
+    
+    return new Pool({
+      connectionString: finalConnectionString,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      // Explicitly enable SSL for Neon
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    });
+  }
+
+  // For other databases, try to parse the connection string
   try {
     const url = new URL(connectionString.replace("postgresql://", "http://"));
-    const isProduction = process.env.NODE_ENV === "production";
-    const isNeon = connectionString.includes("neon.tech") || connectionString.includes("neon.tech");
     
     const config: any = {
       host: url.hostname || "localhost",
@@ -33,8 +61,8 @@ function createPool(): Pool {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-      // Enable SSL for production or Neon databases
-      ssl: isProduction || isNeon ? { rejectUnauthorized: false } : false,
+      // Enable SSL for production
+      ssl: isProduction ? { rejectUnauthorized: false } : false,
     };
 
     // Remove undefined values
@@ -46,15 +74,14 @@ function createPool(): Pool {
 
     return new Pool(config);
   } catch (error) {
-    // Fallback to connection string (for Neon and other providers)
-    const isNeon = connectionString.includes("neon.tech");
+    // Fallback to connection string
+    console.log("[db] Using connection string directly");
     return new Pool({
       connectionString,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-      // Ensure SSL for Neon even when using connection string
-      ssl: isNeon ? { rejectUnauthorized: false } : undefined,
+      ssl: isProduction ? { rejectUnauthorized: false } : undefined,
     });
   }
 }
@@ -63,6 +90,22 @@ export const pool = globalForDb.pool ?? createPool();
 
 if (process.env.NODE_ENV !== "production") {
   globalForDb.pool = pool;
+}
+
+// Test database connection
+export async function testConnection(): Promise<boolean> {
+  try {
+    const result = await pool.query("SELECT NOW() as now");
+    console.log("[db] Database connection successful");
+    return true;
+  } catch (error: any) {
+    console.error("[db] Database connection failed:", {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+    });
+    return false;
+  }
 }
 
 // Helper function to execute queries
@@ -83,6 +126,8 @@ export async function query<T extends Record<string, any> = any>(
       message: error?.message,
       code: error?.code,
       query: text.substring(0, 100),
+      detail: error?.detail,
+      hint: error?.hint,
     });
     // Provide more helpful error messages
     if (error?.code === "ECONNREFUSED") {
@@ -96,6 +141,9 @@ export async function query<T extends Record<string, any> = any>(
     }
     if (error?.code === "3D000") {
       throw new Error("Database does not exist. Check DATABASE_URL.");
+    }
+    if (error?.code === "08006" || error?.message?.includes("SSL")) {
+      throw new Error("Database SSL connection failed. Ensure SSL is properly configured for your database provider.");
     }
     throw error;
   }
