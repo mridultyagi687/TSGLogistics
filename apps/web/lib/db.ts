@@ -46,12 +46,15 @@ function createPool(): Pool {
 
     return new Pool(config);
   } catch (error) {
-    // Fallback to connection string
+    // Fallback to connection string (for Neon and other providers)
+    const isNeon = connectionString.includes("neon.tech");
     return new Pool({
       connectionString,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      // Ensure SSL for Neon even when using connection string
+      ssl: isNeon ? { rejectUnauthorized: false } : undefined,
     });
   }
 }
