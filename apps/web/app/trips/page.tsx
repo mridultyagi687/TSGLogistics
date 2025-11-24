@@ -16,33 +16,30 @@ function formatAddress(address: { city: string; state: string }) {
 }
 
 function tripStatusBadge(status: Trip["status"]) {
-  const statusConfig: Record<
-    Trip["status"],
-    { label: string; className: string }
-  > = {
-    SCHEDULED: {
+  const statusConfig: Record<Trip["status"], { label: string; className: string }> = {
+    scheduled: {
       label: "Scheduled",
       className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
     },
-    IN_PROGRESS: {
+    in_progress: {
       label: "In Progress",
       className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
     },
-    AT_STOP: {
+    at_stop: {
       label: "At Stop",
       className: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
     },
-    COMPLETED: {
+    completed: {
       label: "Completed",
       className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
     },
-    EXCEPTION: {
+    exception: {
       label: "Exception",
       className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
     }
   };
 
-  const config = statusConfig[status] || statusConfig.SCHEDULED;
+  const config = statusConfig[status] || statusConfig.scheduled;
   return (
     <SwiggyBadge className={config.className}>{config.label}</SwiggyBadge>
   );
@@ -60,10 +57,10 @@ export default async function TripsPage() {
 
   const loadMap = new Map(loads.map((load) => [load.id, load]));
 
-  const scheduled = trips.filter((t) => t.status === "SCHEDULED").length;
-  const inProgress = trips.filter((t) => t.status === "IN_PROGRESS").length;
-  const completed = trips.filter((t) => t.status === "COMPLETED").length;
-  const exception = trips.filter((t) => t.status === "EXCEPTION").length;
+  const scheduled = trips.filter((t) => t.status === "scheduled").length;
+  const inProgress = trips.filter((t) => t.status === "in_progress").length;
+  const completed = trips.filter((t) => t.status === "completed").length;
+  const exception = trips.filter((t) => t.status === "exception").length;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
