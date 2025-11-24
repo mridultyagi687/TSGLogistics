@@ -20,7 +20,6 @@
     "lint": "npm run lint --workspaces",
     "format": "npm run format --workspaces",
     "typecheck": "npm run typecheck --workspaces",
-    "postinstall": "npm run build --workspace @tsg/shared",
     "prisma:migrate": "npm run prisma:migrate --workspace @tsg/api",
     "prisma:generate": "npm run prisma:generate --workspace @tsg/api",
     "prisma:migrate:orders": "npm run prisma:migrate --workspace @tsg/orders-service",
