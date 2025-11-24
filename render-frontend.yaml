@@ -1,0 +1,28 @@
+services:
+  # Frontend Web Service (Next.js)
+  # Deploy this separately from the backend
+  - type: web
+    name: tsg-logistics-frontend
+    env: node
+    plan: starter
+    rootDir: .
+    buildCommand: npm install && npm run build --workspace @tsg/web
+    startCommand: npm run start --workspace @tsg/web
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Point to your backend service URL (update this!)
+      - key: NEXT_PUBLIC_GATEWAY_URL
+        value: https://tsg-logistics.onrender.com
+      # Database for authentication
+      - key: WEB_DATABASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      # Auth secret (must match backend!)
+      - key: AUTH_SECRET
+        sync: false
+      # Telemetry (optional)
+      - key: TELEMETRY_CHANNEL
+        value: telemetry:gateway:events
+

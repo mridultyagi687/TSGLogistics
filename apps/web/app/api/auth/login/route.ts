@@ -8,12 +8,21 @@ export async function POST(request: NextRequest) {
     const dbConnected = await testConnection();
     if (!dbConnected) {
       console.error("[Login] Database connection test failed");
+      const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
+      const hasConnectionString = !!connectionString;
+      const isNeon = connectionString?.includes("neon.tech") || connectionString?.includes("neon");
+      
+      // In production, provide helpful diagnostic info via health endpoint
       return NextResponse.json(
         { 
           error: "Database connection failed",
-          message: process.env.NODE_ENV === "development" 
-            ? "Unable to connect to the database. Check WEB_DATABASE_URL or DATABASE_URL environment variable and ensure the database is accessible."
-            : "Service temporarily unavailable. Please try again later.",
+          message: "Service temporarily unavailable. Please try again later.",
+          diagnostic: {
+            hasConnectionString,
+            isNeon,
+            healthCheck: "/api/health",
+            suggestion: "Check the /api/health endpoint for detailed database connection diagnostics"
+          }
         },
         { status: 503 }
       );

@@ -34,6 +34,18 @@ export async function GET() {
     },
   };
 
+  // Check if pool initialization failed
+  const connectionString = process.env.WEB_DATABASE_URL ?? process.env.DATABASE_URL;
+  
+  if (!connectionString) {
+    healthStatus.status = "unhealthy";
+    healthStatus.database.connected = false;
+    healthStatus.database.error = "No database connection string found (WEB_DATABASE_URL or DATABASE_URL not set)";
+    healthStatus.environment.hasWEB_DATABASE_URL = false;
+    healthStatus.environment.hasDATABASE_URL = false;
+    return NextResponse.json(healthStatus, { status: 503 });
+  }
+
   try {
     // Test database connection
     const dbConnected = await testConnection();
