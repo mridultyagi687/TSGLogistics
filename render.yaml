@@ -1,0 +1,131 @@
+services:
+  # PostgreSQL Database (using Neon)
+  # Note: Neon database should be created separately and DATABASE_URL provided as env var
+
+  # API Gateway
+  - type: web
+    name: tsg-api-gateway
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build --workspace services/api-gateway
+    startCommand: cd services/api-gateway && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: ORDERS_SERVICE_URL
+        fromService:
+          name: tsg-orders-service
+          type: web
+          property: host
+      - key: VENDOR_SERVICE_URL
+        fromService:
+          name: tsg-vendor-service
+          type: web
+          property: host
+      - key: WALLET_SERVICE_URL
+        fromService:
+          name: tsg-wallet-service
+          type: web
+          property: host
+      - key: CORS_ORIGINS
+        value: https://tsg-logistics.onrender.com
+      - key: REDIS_URL
+        fromService:
+          name: tsg-redis
+          type: redis
+          property: connectionString
+      - key: TELEMETRY_CHANNEL
+        value: telemetry:gateway:events
+      - key: DATABASE_URL
+        sync: false
+
+  # Orders Service
+  - type: web
+    name: tsg-orders-service
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run prisma:generate --workspace services/orders-service && npm run build --workspace services/orders-service
+    startCommand: cd services/orders-service && npm run prisma:deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4001
+      - key: DATABASE_URL
+        sync: false
+      - key: VENDOR_SERVICE_URL
+        fromService:
+          name: tsg-vendor-service
+          type: web
+          property: host
+      - key: WALLET_SERVICE_URL
+        fromService:
+          name: tsg-wallet-service
+          type: web
+          property: host
+
+  # Vendor Service
+  - type: web
+    name: tsg-vendor-service
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run prisma:generate --workspace services/vendor-service && npm run build --workspace services/vendor-service
+    startCommand: cd services/vendor-service && npm run prisma:deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4002
+      - key: DATABASE_URL
+        sync: false
+
+  # Wallet Service
+  - type: web
+    name: tsg-wallet-service
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run prisma:generate --workspace services/wallet-service && npm run build --workspace services/wallet-service
+    startCommand: cd services/wallet-service && npm run prisma:deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4003
+      - key: DATABASE_URL
+        sync: false
+
+  # Web Application (Next.js)
+  - type: web
+    name: tsg-web
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build --workspace apps/web
+    startCommand: cd apps/web && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_GATEWAY_URL
+        fromService:
+          name: tsg-api-gateway
+          type: web
+          property: host
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: tsg-redis
+          type: redis
+          property: connectionString
+      - key: TELEMETRY_CHANNEL
+        value: telemetry:gateway:events
+      - key: AUTH_SECRET
+        generateValue: true
+
+  # Redis (for caching and telemetry)
+  - type: redis
+    name: tsg-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+
