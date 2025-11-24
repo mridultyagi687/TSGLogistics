@@ -86,10 +86,18 @@ export async function POST(request: NextRequest) {
     console.log("[Login] Session ID:", session.sessionId.substring(0, 8) + "...");
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error);
+    console.error("Error details:", {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+    });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        message: process.env.NODE_ENV === "development" ? error?.message : undefined,
+      },
       { status: 500 }
     );
   }

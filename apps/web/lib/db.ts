@@ -21,6 +21,9 @@ function createPool(): Pool {
   // Parse connection string
   try {
     const url = new URL(connectionString.replace("postgresql://", "http://"));
+    const isProduction = process.env.NODE_ENV === "production";
+    const isNeon = connectionString.includes("neon.tech") || connectionString.includes("neon.tech");
+    
     const config: any = {
       host: url.hostname || "localhost",
       port: parseInt(url.port || "5432", 10),
@@ -30,7 +33,8 @@ function createPool(): Pool {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-      ssl: false, // Disable SSL for local development
+      // Enable SSL for production or Neon databases
+      ssl: isProduction || isNeon ? { rejectUnauthorized: false } : false,
     };
 
     // Remove undefined values
@@ -71,8 +75,25 @@ export async function query<T extends Record<string, any> = any>(
       console.log("Executed query", { text, duration, rows: res.rowCount });
     }
     return res;
-  } catch (error) {
-    console.error("Database query error:", error);
+  } catch (error: any) {
+    console.error("Database query error:", {
+      message: error?.message,
+      code: error?.code,
+      query: text.substring(0, 100),
+    });
+    // Provide more helpful error messages
+    if (error?.code === "ECONNREFUSED") {
+      throw new Error("Database connection refused. Check DATABASE_URL and ensure the database is running.");
+    }
+    if (error?.code === "ENOTFOUND") {
+      throw new Error("Database host not found. Check DATABASE_URL.");
+    }
+    if (error?.code === "28P01") {
+      throw new Error("Database authentication failed. Check database credentials.");
+    }
+    if (error?.code === "3D000") {
+      throw new Error("Database does not exist. Check DATABASE_URL.");
+    }
     throw error;
   }
 }
