@@ -123,9 +123,11 @@ services:
       - key: AUTH_SECRET
         generateValue: true
 
-  # Redis (for caching and telemetry)
-  - type: redis
-    name: tsg-redis
-    plan: starter
-    maxmemoryPolicy: allkeys-lru
+  # Redis (for caching and telemetry) - OPTIONAL
+  # Uncomment if Redis is available in your Render plan
+  # If not available, services will work fine without it
+  # - type: redis
+  #   name: tsg-redis
+  #   plan: starter
+  #   maxmemoryPolicy: allkeys-lru
 
