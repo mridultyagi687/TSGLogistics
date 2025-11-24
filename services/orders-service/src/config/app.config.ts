@@ -1,8 +1,9 @@
 const configuration = () => ({
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  PORT: parseInt(process.env.PORT ?? "4001", 10),
+  PORT: parseInt(process.env.ORDERS_PORT ?? process.env.PORT ?? "4001", 10),
   APP_NAME: "TSG Orders Service",
   DATABASE_URL:
+    process.env.ORDERS_DATABASE_URL ??
     process.env.DATABASE_URL ??
     "postgresql://tsg:tsg_secret@localhost:5432/tsg_logistics?schema=orders",
   SERVICES: {

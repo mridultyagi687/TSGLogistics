@@ -34,12 +34,16 @@
     "prisma:deploy:wallet": "npm run prisma:deploy --workspace @tsg/wallet-service",
     "prisma:deploy": "npm run prisma:deploy --workspaces --if-present",
     "prisma:seed": "npm run prisma:seed --workspaces --if-present",
-    "start": "npm run start --workspaces --if-present"
+    "start": "npm run start --workspaces --if-present",
+    "start:all": "concurrently \"npm run start --workspace @tsg/orders-service\" \"npm run start --workspace @tsg/vendor-service\" \"npm run start --workspace @tsg/wallet-service\" \"npm run start --workspace @tsg/api-gateway\" \"npm run start --workspace apps/web\"",
+    "build:all": "npm run build --workspace @tsg/shared && npm run build:orders && npm run build:vendor && npm run build:wallet && npm run build:gateway && npm run build --workspace apps/web"
   },
   "engines": {
     "node": ">=18.18",
     "npm": ">=9"
   },
-  "packageManager": "npm@10.5.0"
+  "packageManager": "npm@10.5.0",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }
-

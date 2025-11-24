@@ -1,113 +1,46 @@
 services:
-  # All services are web services - no Redis needed!
-
-  # API Gateway
+  # Single Web Service - All services run together
   - type: web
-    name: tsg-api-gateway
+    name: tsg-logistics
     env: node
     plan: starter
-    buildCommand: npm install && npm run build --workspace services/api-gateway
-    startCommand: cd services/api-gateway && npm start
+    buildCommand: npm install && npm run build:all
+    startCommand: npm run start:all
     envVars:
       - key: NODE_ENV
         value: production
+      # Orders Service
+      - key: ORDERS_PORT
+        value: "4001"
+      - key: ORDERS_DATABASE_URL
+        sync: false
+      # Vendor Service
+      - key: VENDOR_PORT
+        value: "4002"
+      - key: VENDOR_DATABASE_URL
+        sync: false
+      # Wallet Service
+      - key: WALLET_PORT
+        value: "4003"
+      - key: WALLET_DATABASE_URL
+        sync: false
+      # API Gateway
       - key: PORT
-        value: 4000
+        value: "4000"
       - key: ORDERS_SERVICE_URL
-        fromService:
-          name: tsg-orders-service
-          type: web
-          property: host
+        value: http://localhost:4001
       - key: VENDOR_SERVICE_URL
-        fromService:
-          name: tsg-vendor-service
-          type: web
-          property: host
+        value: http://localhost:4002
       - key: WALLET_SERVICE_URL
-        fromService:
-          name: tsg-wallet-service
-          type: web
-          property: host
+        value: http://localhost:4003
       - key: CORS_ORIGINS
-        value: https://tsg-web.onrender.com
+        value: https://tsg-logistics.onrender.com
       - key: TELEMETRY_CHANNEL
         value: telemetry:gateway:events
-      - key: DATABASE_URL
-        sync: false
-
-  # Orders Service
-  - type: web
-    name: tsg-orders-service
-    env: node
-    plan: starter
-    buildCommand: npm install && npm run prisma:generate --workspace services/orders-service && npm run build --workspace services/orders-service
-    startCommand: cd services/orders-service && npm run prisma:deploy && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 4001
-      - key: DATABASE_URL
-        sync: false
-      - key: VENDOR_SERVICE_URL
-        fromService:
-          name: tsg-vendor-service
-          type: web
-          property: host
-      - key: WALLET_SERVICE_URL
-        fromService:
-          name: tsg-wallet-service
-          type: web
-          property: host
-
-  # Vendor Service
-  - type: web
-    name: tsg-vendor-service
-    env: node
-    plan: starter
-    buildCommand: npm install && npm run prisma:generate --workspace services/vendor-service && npm run build --workspace services/vendor-service
-    startCommand: cd services/vendor-service && npm run prisma:deploy && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 4002
-      - key: DATABASE_URL
-        sync: false
-
-  # Wallet Service
-  - type: web
-    name: tsg-wallet-service
-    env: node
-    plan: starter
-    buildCommand: npm install && npm run prisma:generate --workspace services/wallet-service && npm run build --workspace services/wallet-service
-    startCommand: cd services/wallet-service && npm run prisma:deploy && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 4003
-      - key: DATABASE_URL
-        sync: false
-
-  # Web Application (Next.js)
-  - type: web
-    name: tsg-web
-    env: node
-    plan: starter
-    buildCommand: npm install && npm run build --workspace apps/web
-    startCommand: cd apps/web && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
+      # Web App
       - key: NEXT_PUBLIC_GATEWAY_URL
-        fromService:
-          name: tsg-api-gateway
-          type: web
-          property: host
-      - key: DATABASE_URL
+        value: http://localhost:4000
+      - key: WEB_DATABASE_URL
         sync: false
-      - key: TELEMETRY_CHANNEL
-        value: telemetry:gateway:events
       - key: AUTH_SECRET
         generateValue: true
