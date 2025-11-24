@@ -1,0 +1,45 @@
+{
+  "name": "tsg-logistics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for TSG Logistics Aggregator platform.",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*",
+    "services/assignment-worker"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:assignment-worker": "npm run build --workspace @tsg/assignment-worker",
+    "build:api": "npm run build --workspace @tsg/api",
+    "build:orders": "npm run build --workspace @tsg/orders-service",
+    "build:vendor": "npm run build --workspace @tsg/vendor-service",
+    "build:wallet": "npm run build --workspace @tsg/wallet-service",
+    "build:gateway": "npm run build --workspace @tsg/api-gateway",
+    "lint": "npm run lint --workspaces",
+    "format": "npm run format --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "postinstall": "npm run build --workspace @tsg/shared",
+    "prisma:migrate": "npm run prisma:migrate --workspace @tsg/api",
+    "prisma:generate": "npm run prisma:generate --workspace @tsg/api",
+    "prisma:migrate:orders": "npm run prisma:migrate --workspace @tsg/orders-service",
+    "prisma:migrate:vendor": "npm run prisma:migrate --workspace @tsg/vendor-service",
+    "prisma:migrate:wallet": "npm run prisma:migrate --workspace @tsg/wallet-service",
+    "prisma:generate:orders": "npm run prisma:generate --workspace @tsg/orders-service",
+    "prisma:generate:vendor": "npm run prisma:generate --workspace @tsg/vendor-service",
+    "prisma:generate:wallet": "npm run prisma:generate --workspace @tsg/wallet-service",
+    "prisma:deploy:orders": "npm run prisma:deploy --workspace @tsg/orders-service",
+    "prisma:deploy:vendor": "npm run prisma:deploy --workspace @tsg/vendor-service",
+    "prisma:deploy:wallet": "npm run prisma:deploy --workspace @tsg/wallet-service",
+    "prisma:deploy": "npm run prisma:deploy --workspaces --if-present",
+    "prisma:seed": "npm run prisma:seed --workspaces --if-present",
+    "start": "npm run start --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.18",
+    "npm": ">=9"
+  },
+  "packageManager": "npm@10.5.0"
+}
+

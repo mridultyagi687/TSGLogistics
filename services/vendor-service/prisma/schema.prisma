@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vendor {
+  id           String    @id @default(cuid())
+  orgId        String
+  name         String
+  services     String[]
+  rating       Float?
+  geoHash      String?
+  address      Json
+  contactPhone String?
+  capabilities VendorCapability[]
+  assignments  Assignment[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum AssignmentStatus {
+  PENDING
+  OFFERED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+enum AssignmentEventType {
+  CREATED
+  OFFERED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+  NOTE_ADDED
+}
+
+model VendorCapability {
+  id          String   @id @default(cuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Assignment {
+  id               String            @id @default(cuid())
+  orgId            String
+  vendorId         String
+  vendor           Vendor            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  loadId           String
+  tripId           String?
+  status           AssignmentStatus  @default(PENDING)
+  score            Float?
+  metadata         Json?
+  events           AssignmentEvent[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model AssignmentEvent {
+  id            String              @id @default(cuid())
+  assignmentId  String
+  assignment    Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  type          AssignmentEventType
+  payload       Json?
+  occurredAt    DateTime            @default(now())
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+

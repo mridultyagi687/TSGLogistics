@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LoadStatus {
+  DRAFT
+  PUBLISHED
+  BOOKED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  AT_STOP
+  COMPLETED
+  EXCEPTION
+}
+
+enum LoadAssignmentStatus {
+  UNASSIGNED
+  SOURCING
+  OFFERED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model LoadOrder {
+  id                 String               @id @default(cuid())
+  orgId              String
+  referenceCode      String
+  pickup             Json
+  drop               Json
+  cargoType          String
+  cargoValue         Decimal              @default(0)
+  slaHours           Int
+  vehicleType        String
+  status             LoadStatus           @default(DRAFT)
+  priceQuoteBand     Json                 @default("{}")
+  assignmentId       String?
+  assignmentStatus   LoadAssignmentStatus @default(UNASSIGNED)
+  assignmentMetadata Json?
+  assignmentLockedAt DateTime?
+  trips              Trip[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
+
+model Trip {
+  id                    String     @id @default(cuid())
+  loadId                String
+  load                  LoadOrder  @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  vehicleId             String?
+  driverId              String?
+  assignmentId          String?
+  status                TripStatus @default(SCHEDULED)
+  stops                 TripStop[]
+  scheduledAt           DateTime   @default(now())
+  startedAt             DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+  exceptionReason       String?
+  totalDetentionMinutes Int        @default(0)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+}
+
+model TripStop {
+  id               String    @id @default(cuid())
+  tripId           String
+  trip             Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  sequence         Int
+  plannedArrival   DateTime
+  plannedDeparture DateTime
+  actualArrival    DateTime?
+  actualDeparture  DateTime?
+  detentionMinutes Int?
+  address          Json
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}

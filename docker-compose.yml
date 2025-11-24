@@ -1,0 +1,146 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tsg-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tsg_logistics
+      POSTGRES_USER: tsg
+      POSTGRES_PASSWORD: tsg_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: tsg-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: services/orders-service/Dockerfile
+    container_name: tsg-orders-service
+    environment:
+      DATABASE_URL: postgresql://tsg:tsg_secret@postgres:5432/tsg_logistics?schema=orders
+      PORT: 4001
+    depends_on:
+      - postgres
+    ports:
+      - "4001:4001"
+
+  vendor-service:
+    build:
+      context: .
+      dockerfile: services/vendor-service/Dockerfile
+    container_name: tsg-vendor-service
+    environment:
+      DATABASE_URL: postgresql://tsg:tsg_secret@postgres:5432/tsg_logistics?schema=vendors
+      PORT: 4002
+    depends_on:
+      - postgres
+    ports:
+      - "4002:4002"
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: services/wallet-service/Dockerfile
+    container_name: tsg-wallet-service
+    environment:
+      DATABASE_URL: postgresql://tsg:tsg_secret@postgres:5432/tsg_logistics?schema=wallet
+      PORT: 4003
+    depends_on:
+      - postgres
+    ports:
+      - "4003:4003"
+
+  assignment-worker:
+    build:
+      context: .
+      dockerfile: services/assignment-worker/Dockerfile
+    container_name: tsg-assignment-worker
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://tsg:tsg_secret@postgres:5432/tsg_logistics?schema=orders
+      VENDOR_SERVICE_URL: http://vendor-service:4002
+      ORDERS_SERVICE_URL: http://orders-service:4001
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - orders-service
+      - vendor-service
+      - kafka
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: tsg-api-gateway
+    environment:
+      PORT: 4000
+      ORDERS_SERVICE_URL: http://orders-service:4001
+      VENDOR_SERVICE_URL: http://vendor-service:4002
+      WALLET_SERVICE_URL: http://wallet-service:4003
+      CORS_ORIGINS: http://localhost:3000
+      REDIS_URL: redis://redis:6379
+      TELEMETRY_CHANNEL: telemetry:gateway:events
+    depends_on:
+      - orders-service
+      - vendor-service
+      - wallet-service
+    ports:
+      - "4000:4000"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: tsg-keycloak
+    command: ["start-dev", "--import-realm", "--spi-theme-static-max-age=-1", "--spi-theme-cache-themes=false", "--spi-theme-cache-templates=false"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_FEATURES: preview
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./infra/keycloak/realm-export:/opt/keycloak/data/import
+      - ./infra/keycloak/themes:/opt/keycloak/themes
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    depends_on:
+      - postgres
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: tsg-kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: tsg-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+volumes:
+  postgres-data:
+  redis-data:
+

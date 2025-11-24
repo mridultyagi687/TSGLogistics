@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LoadStatus {
+  DRAFT
+  PUBLISHED
+  BOOKED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  AT_STOP
+  COMPLETED
+  EXCEPTION
+}
+
+enum WalletType {
+  ESCROW
+  FLEET
+  VENDOR
+}
+
+enum WalletStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model LoadOrder {
+  id             String      @id @default(cuid())
+  orgId          String
+  referenceCode  String
+  pickup         Json
+  drop           Json
+  cargoType      String
+  cargoValue     Decimal      @default(0)
+  slaHours       Int
+  vehicleType    String
+  status         LoadStatus   @default(DRAFT)
+  priceQuoteBand Json         @default("{}")
+  trips          Trip[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Trip {
+  id         String     @id @default(cuid())
+  loadId     String
+  load       LoadOrder  @relation(fields: [loadId], references: [id], onDelete: Cascade)
+  vehicleId  String?
+  driverId   String?
+  status     TripStatus @default(SCHEDULED)
+  stops      TripStop[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model TripStop {
+  id               String    @id @default(cuid())
+  tripId           String
+  trip             Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  sequence         Int
+  plannedArrival   DateTime
+  plannedDeparture DateTime
+  actualArrival    DateTime?
+  actualDeparture  DateTime?
+  detentionMinutes Int?
+  address          Json
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Vendor {
+  id           String    @id @default(cuid())
+  orgId        String
+  name         String
+  services     String[]
+  rating       Float?
+  geoHash      String?
+  address      Json
+  contactPhone String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model WalletAccount {
+  id        String       @id @default(cuid())
+  orgId     String
+  balance   Decimal      @default(0)
+  currency  String
+  type      WalletType
+  status    WalletStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+

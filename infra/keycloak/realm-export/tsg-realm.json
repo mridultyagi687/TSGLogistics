@@ -1,0 +1,128 @@
+{
+  "realm": "tsg",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "rememberMe": true,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "verifyEmail": false,
+  "loginTheme": "tsg",
+  "accountTheme": "tsg",
+  "adminTheme": "tsg",
+  "emailTheme": "tsg",
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Full system administrator with all permissions",
+        "composite": false
+      },
+      {
+        "name": "ops_manager",
+        "description": "Operations manager with load and trip management permissions",
+        "composite": false
+      },
+      {
+        "name": "vendor_manager",
+        "description": "Vendor management permissions",
+        "composite": false
+      },
+      {
+        "name": "wallet_manager",
+        "description": "Wallet and payment management permissions",
+        "composite": false
+      },
+      {
+        "name": "viewer",
+        "description": "Read-only access to all resources",
+        "composite": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "tsg-web",
+      "name": "TSG Logistics Web",
+      "description": "Next.js front-end for the TSG Logistics Aggregator platform",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "tsg-web-secret",
+      "redirectUris": [
+        "http://localhost:3000/api/auth/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "rootUrl": "http://localhost:3000",
+      "baseUrl": "http://localhost:3000",
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "frontchannel.logout.session.required": "true",
+        "pkce.code.challenge.method": "S256"
+      },
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "orgId",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "orgId",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "orgId",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "realmRoles",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "ops-lead",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "ops-lead@tsglogistics.test",
+      "firstName": "Ops",
+      "lastName": "Lead",
+      "attributes": {
+        "orgId": [
+          "org_demo"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    }
+  ]
+}
