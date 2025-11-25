@@ -38,10 +38,15 @@ wait_for_service() {
   return 1
 }
 
+# Ensure we're in the project root
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+echo "Working directory: $(pwd)"
+
 # Start Orders Service in background
 echo ""
 echo "📦 Starting Orders Service on port 4001..."
-cd /opt/render/project/src || cd "$(dirname "$0")/.."
 ORDERS_PORT=4001 npm run start --workspace @tsg/orders-service > /tmp/orders.log 2>&1 &
 ORDERS_PID=$!
 echo "Orders Service PID: $ORDERS_PID"
