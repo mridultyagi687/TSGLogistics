@@ -107,12 +107,22 @@ export async function createLoadAction(
       message: "Load draft created via gateway."
     };
   } catch (error) {
+    console.error("[createLoadAction] Error creating load:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unexpected error creating load.";
+    
+    // Provide more helpful error messages
+    let friendlyMessage = errorMessage;
+    if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+      friendlyMessage = "Gateway service endpoint not found. Please check if the API Gateway is running.";
+    } else if (errorMessage.includes("ECONNREFUSED") || errorMessage.includes("connection refused")) {
+      friendlyMessage = "Cannot connect to gateway service. Please ensure the API Gateway (port 4000) is running.";
+    } else if (errorMessage.includes("unavailable") || errorMessage.includes("Gateway service")) {
+      friendlyMessage = "Gateway service is not available. Please check if the API Gateway and Orders Service are running.";
+    }
+    
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : "Unexpected error creating load."
+      message: friendlyMessage
     };
   }
 }
