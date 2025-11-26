@@ -12,20 +12,17 @@ services:
       - key: NODE_ENV
         value: production
       # Orders Service (runs on localhost:4001)
+      # Uses DATABASE_URL with ?schema=orders if ORDERS_DATABASE_URL not set
       - key: ORDERS_PORT
         value: "4001"
-      - key: ORDERS_DATABASE_URL
-        sync: false
       # Vendor Service (runs on localhost:4002)
+      # Uses DATABASE_URL with ?schema=vendors if VENDOR_DATABASE_URL not set
       - key: VENDOR_PORT
         value: "4002"
-      - key: VENDOR_DATABASE_URL
-        sync: false
       # Wallet Service (runs on localhost:4003)
+      # Uses DATABASE_URL with ?schema=wallet if WALLET_DATABASE_URL not set
       - key: WALLET_PORT
         value: "4003"
-      - key: WALLET_DATABASE_URL
-        sync: false
       # API Gateway (runs on localhost:4000, proxied by Next.js)
       - key: GATEWAY_PORT
         value: "4000"
