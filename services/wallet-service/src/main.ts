@@ -12,8 +12,8 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>("PORT", 4003);
 
-  await app.listen(port);
-  Logger.log(`Wallet Service listening on http://localhost:${port}`, "Bootstrap");
+  await app.listen(port, "0.0.0.0");
+  Logger.log(`Wallet Service listening on http://0.0.0.0:${port}`, "Bootstrap");
 }
 
 bootstrap().catch((error) => {
