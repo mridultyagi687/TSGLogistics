@@ -3,7 +3,8 @@
 # Start all services for Render deployment
 # This script starts services in the correct order with proper error handling
 
-set -e
+# Don't exit on error - we want to try starting all services
+set +e
 
 echo "🚀 Starting TSG Logistics Services on Render..."
 echo "=============================================="
@@ -68,31 +69,46 @@ echo "Wallet Service PID: $WALLET_PID"
 # Wait for services to initialize
 echo ""
 echo "⏳ Waiting for services to initialize..."
-sleep 8
+sleep 10
 
 # Check if services are still running
+SERVICES_OK=true
+
 if ! kill -0 $ORDERS_PID 2>/dev/null; then
   echo "❌ Orders Service failed to start"
   echo "--- Orders Service Log ---"
-  cat /tmp/orders.log || echo "No log file found"
-  exit 1
+  cat /tmp/orders.log 2>/dev/null || echo "No log file found"
+  SERVICES_OK=false
+else
+  echo "✅ Orders Service is running (PID: $ORDERS_PID)"
 fi
 
 if ! kill -0 $VENDOR_PID 2>/dev/null; then
   echo "❌ Vendor Service failed to start"
   echo "--- Vendor Service Log ---"
-  cat /tmp/vendor.log || echo "No log file found"
-  exit 1
+  cat /tmp/vendor.log 2>/dev/null || echo "No log file found"
+  SERVICES_OK=false
+else
+  echo "✅ Vendor Service is running (PID: $VENDOR_PID)"
 fi
 
 if ! kill -0 $WALLET_PID 2>/dev/null; then
   echo "❌ Wallet Service failed to start"
   echo "--- Wallet Service Log ---"
-  cat /tmp/wallet.log || echo "No log file found"
-  exit 1
+  cat /tmp/wallet.log 2>/dev/null || echo "No log file found"
+  SERVICES_OK=false
+else
+  echo "✅ Wallet Service is running (PID: $WALLET_PID)"
 fi
 
-echo "✅ All microservices started successfully!"
+if [ "$SERVICES_OK" = false ]; then
+  echo ""
+  echo "⚠️  Some microservices failed to start, but continuing with Gateway..."
+  echo "⚠️  Check the logs above for details."
+else
+  echo ""
+  echo "✅ All microservices started successfully!"
+fi
 
 # Start API Gateway in background
 echo ""
@@ -104,23 +120,27 @@ echo "API Gateway PID: $GATEWAY_PID"
 # Wait for gateway to initialize
 echo ""
 echo "⏳ Waiting for API Gateway to initialize..."
-sleep 8
+sleep 10
 
 # Check if gateway is still running
 if ! kill -0 $GATEWAY_PID 2>/dev/null; then
   echo "❌ API Gateway failed to start"
   echo "--- Gateway Log ---"
-  cat /tmp/gateway.log || echo "No log file found"
-  exit 1
+  cat /tmp/gateway.log 2>/dev/null || echo "No log file found"
+  echo ""
+  echo "⚠️  Gateway failed but continuing with Next.js..."
+  echo "⚠️  The web app will show errors when trying to access Gateway endpoints."
+else
+  echo "✅ API Gateway is running (PID: $GATEWAY_PID)"
+  
+  # Test gateway health endpoint
+  echo ""
+  wait_for_service "http://localhost:4000/health" "API Gateway" || {
+    echo "⚠️  Gateway health check failed, showing logs:"
+    cat /tmp/gateway.log 2>/dev/null || echo "No log file found"
+    echo "⚠️  Gateway may not be fully ready yet..."
+  }
 fi
-
-# Test gateway health endpoint
-echo ""
-wait_for_service "http://localhost:4000/health" "API Gateway" || {
-  echo "⚠️  Gateway health check failed, showing logs:"
-  cat /tmp/gateway.log || echo "No log file found"
-  echo "⚠️  Continuing anyway..."
-}
 
 # Start Next.js Web App (foreground - this blocks and keeps container alive)
 echo ""
