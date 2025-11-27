@@ -48,9 +48,17 @@ echo "Working directory: $(pwd)"
 # Start Orders Service in background
 echo ""
 echo "📦 Starting Orders Service on port 4001..."
+echo "Working directory: $(pwd)"
+echo "Node version: $(node --version)"
+echo "NPM version: $(npm --version)"
+echo "Checking if dist exists:"
+ls -la services/orders-service/dist/main.js 2>/dev/null || echo "⚠️  dist/main.js not found - service may not be built!"
 ORDERS_PORT=4001 npm run start --workspace @tsg/orders-service > /tmp/orders.log 2>&1 &
 ORDERS_PID=$!
 echo "Orders Service PID: $ORDERS_PID"
+sleep 2
+echo "Orders Service log (first 20 lines):"
+head -20 /tmp/orders.log 2>/dev/null || echo "No log yet"
 
 # Start Vendor Service in background
 echo ""
@@ -113,9 +121,14 @@ fi
 # Start API Gateway in background
 echo ""
 echo "🚪 Starting API Gateway on port 4000..."
+echo "Checking if Gateway dist exists:"
+ls -la services/api-gateway/dist/main.js 2>/dev/null || echo "⚠️  dist/main.js not found - Gateway may not be built!"
 GATEWAY_PORT=4000 ORDERS_SERVICE_URL=http://localhost:4001 VENDOR_SERVICE_URL=http://localhost:4002 WALLET_SERVICE_URL=http://localhost:4003 npm run start --workspace @tsg/api-gateway > /tmp/gateway.log 2>&1 &
 GATEWAY_PID=$!
 echo "API Gateway PID: $GATEWAY_PID"
+sleep 2
+echo "Gateway log (first 20 lines):"
+head -20 /tmp/gateway.log 2>/dev/null || echo "No log yet"
 
 # Wait for gateway to initialize
 echo ""
@@ -125,18 +138,26 @@ sleep 10
 # Check if gateway is still running
 if ! kill -0 $GATEWAY_PID 2>/dev/null; then
   echo "❌ API Gateway failed to start"
-  echo "--- Gateway Log ---"
+  echo "--- Full Gateway Log ---"
   cat /tmp/gateway.log 2>/dev/null || echo "No log file found"
+  echo ""
+  echo "--- Checking ports ---"
+  netstat -tuln 2>/dev/null | grep -E ":(4000|4001|4002|4003)" || ss -tuln 2>/dev/null | grep -E ":(4000|4001|4002|4003)" || echo "netstat/ss not available"
   echo ""
   echo "⚠️  Gateway failed but continuing with Next.js..."
   echo "⚠️  The web app will show errors when trying to access Gateway endpoints."
 else
   echo "✅ API Gateway is running (PID: $GATEWAY_PID)"
+  echo "--- Latest Gateway Log ---"
+  tail -30 /tmp/gateway.log 2>/dev/null || echo "No recent log"
   
   # Test gateway health endpoint
   echo ""
+  echo "Testing Gateway health endpoint..."
+  curl -v http://localhost:4000/health 2>&1 | head -20 || echo "curl failed"
   wait_for_service "http://localhost:4000/health" "API Gateway" || {
-    echo "⚠️  Gateway health check failed, showing logs:"
+    echo "⚠️  Gateway health check failed"
+    echo "--- Full Gateway Log ---"
     cat /tmp/gateway.log 2>/dev/null || echo "No log file found"
     echo "⚠️  Gateway may not be fully ready yet..."
   }
