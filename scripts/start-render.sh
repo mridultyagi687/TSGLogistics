@@ -53,12 +53,20 @@ echo "Node version: $(node --version)"
 echo "NPM version: $(npm --version)"
 echo "Checking if dist exists:"
 ls -la services/orders-service/dist/main.js 2>/dev/null || echo "⚠️  dist/main.js not found - service may not be built!"
+echo "Checking DATABASE_URL env var (first 50 chars):"
+echo "${DATABASE_URL:0:50}..." || echo "DATABASE_URL not set"
+echo "ORDERS_PORT: ${ORDERS_PORT:-not set, using default 4001}"
 ORDERS_PORT=4001 npm run start --workspace @tsg/orders-service > /tmp/orders.log 2>&1 &
 ORDERS_PID=$!
 echo "Orders Service PID: $ORDERS_PID"
-sleep 2
-echo "Orders Service log (first 20 lines):"
-head -20 /tmp/orders.log 2>/dev/null || echo "No log yet"
+sleep 3
+echo "Orders Service log (first 30 lines):"
+head -30 /tmp/orders.log 2>/dev/null || echo "No log yet"
+if ! kill -0 $ORDERS_PID 2>/dev/null; then
+  echo "⚠️  Orders Service process died immediately!"
+  echo "Full error log:"
+  cat /tmp/orders.log 2>/dev/null || echo "No log file"
+fi
 
 # Start Vendor Service in background
 echo ""
@@ -123,12 +131,18 @@ echo ""
 echo "🚪 Starting API Gateway on port 4000..."
 echo "Checking if Gateway dist exists:"
 ls -la services/api-gateway/dist/main.js 2>/dev/null || echo "⚠️  dist/main.js not found - Gateway may not be built!"
+echo "GATEWAY_PORT: ${GATEWAY_PORT:-not set, using default 4000}"
 GATEWAY_PORT=4000 ORDERS_SERVICE_URL=http://localhost:4001 VENDOR_SERVICE_URL=http://localhost:4002 WALLET_SERVICE_URL=http://localhost:4003 npm run start --workspace @tsg/api-gateway > /tmp/gateway.log 2>&1 &
 GATEWAY_PID=$!
 echo "API Gateway PID: $GATEWAY_PID"
-sleep 2
-echo "Gateway log (first 20 lines):"
-head -20 /tmp/gateway.log 2>/dev/null || echo "No log yet"
+sleep 3
+echo "Gateway log (first 30 lines):"
+head -30 /tmp/gateway.log 2>/dev/null || echo "No log yet"
+if ! kill -0 $GATEWAY_PID 2>/dev/null; then
+  echo "⚠️  Gateway process died immediately!"
+  echo "Full error log:"
+  cat /tmp/gateway.log 2>/dev/null || echo "No log file"
+fi
 
 # Wait for gateway to initialize
 echo ""

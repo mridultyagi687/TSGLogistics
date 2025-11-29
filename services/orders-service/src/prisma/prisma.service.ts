@@ -9,12 +9,12 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor(private readonly configService: ConfigService<AppConfiguration>) {
+    // Always use DATABASE_URL from config service (which includes schema parameter)
+    // Don't use process.env.DATABASE_URL directly as it may not have the schema
     super({
       datasources: {
         db: {
-          url:
-            process.env.DATABASE_URL ??
-            configService.getOrThrow<string>("DATABASE_URL")
+          url: configService.getOrThrow<string>("DATABASE_URL")
         }
       }
     });
