@@ -43,10 +43,11 @@ wait_for_service() {
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
-echo "🚀 STARTUP SCRIPT EXECUTING: scripts/start-render.sh"
 echo "Working directory: $(pwd)"
 echo "Node version: $(node --version)"
 echo "NPM version: $(npm --version)"
+echo "=============================================="
+echo "STARTUP SCRIPT: scripts/start-render.sh"
 echo "=============================================="
 
 # Start Orders Service in background
@@ -203,6 +204,25 @@ echo "🌐 Starting Next.js Web App (main process)..."
 echo ""
 
 # Use exec to replace the shell process with Next.js
-# Ensure Next.js uses Render's PORT (not 4000)
-PORT=${PORT:-10000} exec npm run start --workspace apps/web
+# CRITICAL: Next.js MUST use Render's PORT (automatically set by Render)
+# Do NOT use GATEWAY_PORT - that's for the Gateway service only
+# Save Render's PORT to avoid conflicts
+RENDER_PORT=${PORT}
+if [ -z "$RENDER_PORT" ]; then
+  echo "⚠️  WARNING: PORT environment variable not set by Render!"
+  echo "   This should not happen. Using default 10000."
+  RENDER_PORT=10000
+fi
+
+echo "Next.js will run on Render's PORT: $RENDER_PORT"
+echo "Gateway is on port 4000"
+echo ""
+
+# Ensure Next.js uses Render's PORT, not GATEWAY_PORT
+# Unset GATEWAY_PORT to prevent Next.js from using it
+unset GATEWAY_PORT
+export PORT=$RENDER_PORT
+
+# Use exec to replace the shell process with Next.js
+exec npm run start --workspace apps/web
 
