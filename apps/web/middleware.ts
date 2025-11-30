@@ -6,6 +6,21 @@ const PUBLIC_PATHS = ["/", "/login", "/api/auth/login", "/api/auth/logout", "/ap
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get("host") || "";
+
+  // Redirect backend URL to UI URL if configured
+  const uiUrl = process.env.NEXT_PUBLIC_UI_URL || "https://tsglogistics-ui.onrender.com";
+  const backendHostname = process.env.BACKEND_HOSTNAME || "tsglogistics.onrender.com";
+  
+  // Check if this is the backend URL and redirect to UI URL
+  if (hostname === backendHostname || hostname.includes(backendHostname)) {
+    // Only redirect if we're not already on the UI URL
+    if (!hostname.includes("tsglogistics-ui.onrender.com")) {
+      const uiUrlObj = new URL(uiUrl);
+      const redirectUrl = new URL(pathname + request.nextUrl.search, uiUrlObj.origin);
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
 
   // Allow public paths
   const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
