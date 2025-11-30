@@ -9,16 +9,22 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
 
   // Redirect backend URL to UI URL if configured
-  const uiUrl = process.env.NEXT_PUBLIC_UI_URL || "https://tsglogistics-ui.onrender.com";
+  // Only redirect if NEXT_PUBLIC_UI_URL is set (indicating separate UI service)
+  const uiUrl = process.env.NEXT_PUBLIC_UI_URL;
   const backendHostname = process.env.BACKEND_HOSTNAME || "tsglogistics.onrender.com";
   
   // Check if this is the backend URL and redirect to UI URL
-  if (hostname === backendHostname || hostname.includes(backendHostname)) {
+  if (uiUrl && (hostname === backendHostname || hostname.includes(backendHostname))) {
     // Only redirect if we're not already on the UI URL
     if (!hostname.includes("tsglogistics-ui.onrender.com")) {
-      const uiUrlObj = new URL(uiUrl);
-      const redirectUrl = new URL(pathname + request.nextUrl.search, uiUrlObj.origin);
-      return NextResponse.redirect(redirectUrl);
+      try {
+        const uiUrlObj = new URL(uiUrl);
+        const redirectUrl = new URL(pathname + request.nextUrl.search, uiUrlObj.origin);
+        return NextResponse.redirect(redirectUrl, 308); // 308 Permanent Redirect
+      } catch (e) {
+        // If URL parsing fails, continue with normal flow
+        console.error("Failed to parse UI URL for redirect:", e);
+      }
     }
   }
 
