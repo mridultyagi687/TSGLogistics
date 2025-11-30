@@ -16,13 +16,28 @@ const BACKEND_URL = process.env.BACKEND_URL || store.get("backendUrl") as string
 const WEB_APP_URL = process.env.WEB_APP_URL || store.get("webAppUrl") as string || "https://tsglogistics-ui.onrender.com";
 
 function createWindow(): void {
+  // Check if preload file exists, use empty string if not
+  let preloadPath = path.join(__dirname, "preload.js");
+  try {
+    if (!fs.existsSync(preloadPath)) {
+      preloadPath = path.join(__dirname, "preload.ts"); // Try TypeScript version
+      if (!fs.existsSync(preloadPath)) {
+        console.warn("Preload file not found, continuing without it");
+        preloadPath = ""; // Electron will handle empty preload gracefully
+      }
+    }
+  } catch (err) {
+    console.warn("Error checking preload file:", err);
+    preloadPath = "";
+  }
+
   // Create the browser window with optimized settings
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    show: false, // Don't show until ready to prevent flash
+    show: true, // Show immediately to prevent "not responding"
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     backgroundColor: "#ffffff",
     webPreferences: {
@@ -30,9 +45,48 @@ function createWindow(): void {
       contextIsolation: true,
       enableRemoteModule: false,
       webSecurity: true,
-      preload: path.join(__dirname, "preload.js")
+      preload: preloadPath || undefined
     }
   });
+
+  // Show loading indicator immediately
+  mainWindow.loadURL(`data:text/html,${encodeURIComponent(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Loading TSG Logistics...</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            background: #f5f5f5; 
+          }
+          .container { text-align: center; }
+          .spinner { 
+            border: 4px solid #f3f3f3; 
+            border-top: 4px solid #6366F1; 
+            border-radius: 50%; 
+            width: 50px; 
+            height: 50px; 
+            animation: spin 1s linear infinite; 
+            margin: 0 auto 20px; 
+          }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          h1 { color: #333; margin: 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="spinner"></div>
+          <h1>Loading TSG Logistics...</h1>
+        </div>
+      </body>
+    </html>
+  `)}`);
 
   // Load the app - try multiple paths
   loadApp();
@@ -79,46 +133,65 @@ function createWindow(): void {
       ? "http://localhost:3000" 
       : WEB_APP_URL;
 
-    mainWindow?.loadURL(startUrl).catch((error) => {
+    // Set timeout to prevent hanging
+    const loadTimeout = setTimeout(() => {
+      console.warn("URL load timeout, showing error page");
+      showErrorPage("Connection timeout. Please check your internet connection.");
+    }, 10000); // 10 second timeout
+
+    mainWindow?.loadURL(startUrl, {
+      timeout: 5000
+    }).then(() => {
+      clearTimeout(loadTimeout);
+    }).catch((error) => {
+      clearTimeout(loadTimeout);
       console.error("Failed to load URL:", error);
       // Fallback to backend URL if web app URL fails
-      mainWindow?.loadURL(BACKEND_URL).catch((fallbackError) => {
-        console.error("Failed to load fallback URL:", fallbackError);
-        // Last resort: show error page
-        const errorHtml = `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>TSG Logistics - Connection Error</title>
-              <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 50px; text-align: center; background: #f5f5f5; }
-                .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                h1 { color: #333; margin-bottom: 20px; }
-                p { color: #666; line-height: 1.6; }
-                .url { font-family: monospace; background: #f0f0f0; padding: 5px 10px; border-radius: 4px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <h1>Unable to Load Application</h1>
-                <p>Please check your internet connection and try again.</p>
-                <p>Web App URL: <span class="url">${WEB_APP_URL}</span></p>
-                <p>Backend URL: <span class="url">${BACKEND_URL}</span></p>
-                <p style="margin-top: 30px;"><button onclick="window.location.reload()" style="padding: 10px 20px; background: #6366F1; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button></p>
-              </div>
-            </body>
-          </html>
-        `;
-        mainWindow?.loadURL(`data:text/html,${encodeURIComponent(errorHtml)}`);
-      });
+      if (BACKEND_URL && BACKEND_URL !== startUrl) {
+        mainWindow?.loadURL(BACKEND_URL, {
+          timeout: 5000
+        }).catch((fallbackError) => {
+          console.error("Failed to load fallback URL:", fallbackError);
+          showErrorPage(`Unable to connect to application servers.\n\nWeb App: ${WEB_APP_URL}\nBackend: ${BACKEND_URL}`);
+        });
+      } else {
+        showErrorPage(`Unable to connect to application.\n\nURL: ${startUrl}`);
+      }
     });
   }
 
-  // Show window when ready to prevent white flash
+  function showErrorPage(message: string) {
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>TSG Logistics - Connection Error</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 50px; text-align: center; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #333; margin-bottom: 20px; }
+            p { color: #666; line-height: 1.6; white-space: pre-line; }
+            .url { font-family: monospace; background: #f0f0f0; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; }
+            button { padding: 10px 20px; background: #6366F1; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
+            button:hover { background: #4F46E5; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Unable to Load Application</h1>
+            <p>${message}</p>
+            <button onclick="window.location.reload()">Retry</button>
+          </div>
+        </body>
+      </html>
+    `;
+    mainWindow?.loadURL(`data:text/html,${encodeURIComponent(errorHtml)}`);
+  }
+
+  // Window is already shown, just focus when ready
   mainWindow.once("ready-to-show", () => {
     if (mainWindow) {
-      mainWindow.show();
-      // Focus the window
+      mainWindow.focus();
       if (isDev) {
         mainWindow.webContents.openDevTools();
       }
@@ -138,18 +211,29 @@ function createWindow(): void {
 
   // Prevent navigation to external URLs (except allowed domains)
   mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
-    
-    const allowedHosts = [
-      "localhost",
-      "127.0.0.1",
-      new URL(BACKEND_URL).hostname,
-      new URL(WEB_APP_URL).hostname
-    ];
+    try {
+      const parsedUrl = new URL(navigationUrl);
+      
+      // Safely get hostnames from URLs
+      const allowedHosts = ["localhost", "127.0.0.1"];
+      try {
+        allowedHosts.push(new URL(BACKEND_URL).hostname);
+      } catch (e) {
+        console.warn("Invalid BACKEND_URL:", BACKEND_URL);
+      }
+      try {
+        allowedHosts.push(new URL(WEB_APP_URL).hostname);
+      } catch (e) {
+        console.warn("Invalid WEB_APP_URL:", WEB_APP_URL);
+      }
 
-    if (!allowedHosts.includes(parsedUrl.hostname)) {
-      event.preventDefault();
-      shell.openExternal(navigationUrl);
+      if (!allowedHosts.includes(parsedUrl.hostname)) {
+        event.preventDefault();
+        shell.openExternal(navigationUrl);
+      }
+    } catch (error) {
+      console.error("Error parsing navigation URL:", error);
+      // Allow navigation if we can't parse the URL
     }
   });
 
@@ -309,19 +393,26 @@ app.on("window-all-closed", () => {
 app.setAsDefaultProtocolClient("tsg-logistics");
 
 // Prevent multiple instances (optional)
-const gotTheLock = app.requestSingleInstanceLock();
+// Only enforce single instance after app is ready
+app.whenReady().then(() => {
+  const gotTheLock = app.requestSingleInstanceLock();
 
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on("second-instance", () => {
-    // Someone tried to run a second instance, focus our window instead
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-}
+  if (!gotTheLock) {
+    console.log("Another instance is already running, quitting...");
+    app.quit();
+  } else {
+    app.on("second-instance", () => {
+      // Someone tried to run a second instance, focus our window instead
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      } else {
+        // Window was closed, create a new one
+        createWindow();
+      }
+    });
+  }
+});
 
 // Security: Prevent new window creation
 app.on("web-contents-created", (event, contents) => {
