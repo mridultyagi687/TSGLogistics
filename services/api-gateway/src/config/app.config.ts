@@ -1,10 +1,7 @@
 const configuration = () => ({
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  // Prefer GATEWAY_PORT to avoid conflicts with Render's PORT variable
-  // Render sets PORT for the main web service (Next.js), so Gateway should use GATEWAY_PORT
-  PORT: process.env.GATEWAY_PORT 
-    ? parseInt(process.env.GATEWAY_PORT, 10)
-    : (process.env.PORT ? parseInt(process.env.PORT, 10) : 4000),
+  // Explicitly use GATEWAY_PORT - never use Render's PORT variable
+  PORT: process.env.GATEWAY_PORT ? parseInt(process.env.GATEWAY_PORT, 10) : 4000,
   ORDERS_SERVICE_URL:
     process.env.ORDERS_SERVICE_URL ?? "http://localhost:4001",
   VENDOR_SERVICE_URL:
