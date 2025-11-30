@@ -21,14 +21,10 @@ async function bootstrap() {
     credentials: true
   });
 
-  // Use GATEWAY_PORT if set, otherwise fall back to PORT, otherwise default to 4000
-  // But if PORT is set by Render/hosting, use GATEWAY_PORT explicitly to avoid conflicts
-  const gatewayPort = process.env.GATEWAY_PORT 
-    ? parseInt(process.env.GATEWAY_PORT, 10)
+  // Explicitly use GATEWAY_PORT - never use Render's PORT variable
+  const port = process.env.GATEWAY_PORT 
+    ? parseInt(process.env.GATEWAY_PORT, 10) 
     : configService.get<number>("PORT", 4000);
-  
-  // Ensure we're not using Render's PORT environment variable
-  const port = process.env.GATEWAY_PORT ? parseInt(process.env.GATEWAY_PORT, 10) : gatewayPort;
 
   try {
     await app.listen(port, "0.0.0.0");

@@ -44,6 +44,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 echo "Working directory: $(pwd)"
+echo "Node version: $(node --version)"
+echo "NPM version: $(npm --version)"
+echo "=============================================="
+echo "STARTUP SCRIPT: scripts/start-render.sh"
+echo "=============================================="
 
 # Start Orders Service in background
 echo ""
@@ -132,16 +137,24 @@ echo "🚪 Starting API Gateway on port 4000..."
 echo "Checking if Gateway dist exists:"
 ls -la services/api-gateway/dist/main.js 2>/dev/null || echo "⚠️  dist/main.js not found - Gateway may not be built!"
 echo "GATEWAY_PORT: ${GATEWAY_PORT:-not set, using default 4000}"
+echo "ORDERS_SERVICE_URL: ${ORDERS_SERVICE_URL:-http://localhost:4001}"
+echo "VENDOR_SERVICE_URL: ${VENDOR_SERVICE_URL:-http://localhost:4002}"
+echo "WALLET_SERVICE_URL: ${WALLET_SERVICE_URL:-http://localhost:4003}"
 GATEWAY_PORT=4000 ORDERS_SERVICE_URL=http://localhost:4001 VENDOR_SERVICE_URL=http://localhost:4002 WALLET_SERVICE_URL=http://localhost:4003 npm run start --workspace @tsg/api-gateway > /tmp/gateway.log 2>&1 &
 GATEWAY_PID=$!
 echo "API Gateway PID: $GATEWAY_PID"
-sleep 3
-echo "Gateway log (first 30 lines):"
-head -30 /tmp/gateway.log 2>/dev/null || echo "No log yet"
+sleep 5  # Increased wait time for Gateway to start
+echo "Gateway log (first 50 lines):"
+head -50 /tmp/gateway.log 2>/dev/null || echo "No log yet"
 if ! kill -0 $GATEWAY_PID 2>/dev/null; then
-  echo "⚠️  Gateway process died immediately!"
+  echo "❌ Gateway process died immediately!"
   echo "Full error log:"
   cat /tmp/gateway.log 2>/dev/null || echo "No log file"
+  echo ""
+  echo "Checking if port 4000 is in use:"
+  (lsof -Pi :4000 -sTCP:LISTEN || ss -tuln | grep :4000 || netstat -tuln | grep :4000) 2>/dev/null || echo "Port check tools not available"
+else
+  echo "✅ Gateway process is running (PID: $GATEWAY_PID)"
 fi
 
 # Wait for gateway to initialize
