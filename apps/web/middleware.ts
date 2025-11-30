@@ -14,7 +14,10 @@ export async function middleware(request: NextRequest) {
   const backendHostname = process.env.BACKEND_HOSTNAME || "tsglogistics.onrender.com";
   
   // Check if this is the backend URL and redirect to UI URL
-  if (uiUrl && (hostname === backendHostname || hostname.includes(backendHostname))) {
+  // Don't redirect API endpoints - they should be accessible on backend
+  const isApiEndpoint = pathname.startsWith("/api/");
+  
+  if (uiUrl && !isApiEndpoint && (hostname === backendHostname || hostname.includes(backendHostname))) {
     // Only redirect if we're not already on the UI URL
     if (!hostname.includes("tsglogistics-ui.onrender.com")) {
       try {
