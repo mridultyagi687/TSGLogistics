@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo, useCallback } from "react";
 import { SwiggyButton, SwiggyInput } from "../../components/swiggy-ui";
 
 interface CapabilitiesData {
@@ -26,6 +26,9 @@ function formatCapabilities(data: CapabilitiesData): string {
   return JSON.stringify(data, null, 2);
 }
 
+// Maximum file size: 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 export function CapabilitiesFormClient({
   action,
   initialJson
@@ -33,24 +36,27 @@ export function CapabilitiesFormClient({
   action: (formData: FormData) => Promise<void>;
   initialJson: string;
 }) {
-  const initialData = parseCapabilities(initialJson);
+  // Memoize initial data parsing to avoid recalculating on every render
+  const initialData = useMemo(() => parseCapabilities(initialJson), [initialJson]);
+  
+  // Safely initialize state with memoized values
   const [fleetTypes, setFleetTypes] = useState(
-    initialData.fleetTypes?.join(", ") || ""
+    () => initialData.fleetTypes?.join(", ") || ""
   );
   const [maxPayloadKg, setMaxPayloadKg] = useState(
-    initialData.maxPayloadKg?.toString() || ""
+    () => initialData.maxPayloadKg?.toString() || ""
   );
   const [routeCoverage, setRouteCoverage] = useState(
-    initialData.routeCoverage?.join(", ") || ""
+    () => initialData.routeCoverage?.join(", ") || ""
   );
   const [operatingHours, setOperatingHours] = useState(
-    initialData.operatingHours || ""
+    () => initialData.operatingHours || ""
   );
-  const [notes, setNotes] = useState(initialData.notes || "");
-  const [researchData, setResearchData] = useState(initialData.researchData || "");
+  const [notes, setNotes] = useState(() => initialData.notes || "");
+  const [researchData, setResearchData] = useState(() => initialData.researchData || "");
   const [documents, setDocuments] = useState<File[]>([]);
   const [existingDocuments, setExistingDocuments] = useState<string[]>(
-    Array.isArray(initialData.documents) ? initialData.documents : []
+    () => Array.isArray(initialData.documents) ? initialData.documents : []
   );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -246,7 +252,7 @@ export function CapabilitiesFormClient({
                   <button
                     type="button"
                     onClick={() => {
-                      setExistingDocuments(existingDocuments.filter((_, i) => i !== index));
+                      setExistingDocuments((prev) => prev.filter((_, i) => i !== index));
                     }}
                     className="text-xs text-red-600 hover:text-red-800"
                   >
@@ -264,8 +270,54 @@ export function CapabilitiesFormClient({
               accept=".pdf,application/pdf"
               multiple
               onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                setDocuments((prev) => [...prev, ...files]);
+                const input = e.target;
+                if (!input.files) return;
+                
+                const files = Array.from(input.files);
+                
+                // Limit total files to prevent memory issues
+                const MAX_FILES = 10;
+                
+                // Validate file sizes and types
+                const validFiles: File[] = [];
+                const errors: string[] = [];
+                
+                files.slice(0, MAX_FILES).forEach((file) => {
+                  // Check file type
+                  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+                    errors.push(`${file.name}: Not a PDF file`);
+                    return;
+                  }
+                  
+                  // Check file size
+                  if (file.size > MAX_FILE_SIZE) {
+                    errors.push(`${file.name}: File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+                    return;
+                  }
+                  
+                  validFiles.push(file);
+                });
+                
+                if (files.length > MAX_FILES) {
+                  errors.push(`Maximum ${MAX_FILES} files allowed`);
+                }
+                
+                if (errors.length > 0) {
+                  setError(errors.join(". "));
+                } else {
+                  setError(null);
+                }
+                
+                if (validFiles.length > 0) {
+                  setDocuments((prev) => {
+                    const combined = [...prev, ...validFiles];
+                    // Limit total documents to prevent memory issues
+                    return combined.slice(0, MAX_FILES);
+                  });
+                }
+                
+                // Reset input to allow selecting the same file again
+                input.value = "";
               }}
               className="hidden"
               id="document-upload"
@@ -304,7 +356,7 @@ export function CapabilitiesFormClient({
                   <button
                     type="button"
                     onClick={() => {
-                      setDocuments(documents.filter((_, i) => i !== index));
+                      setDocuments((prev) => prev.filter((_, i) => i !== index));
                     }}
                     className="text-xs text-red-600 hover:text-red-800"
                   >
