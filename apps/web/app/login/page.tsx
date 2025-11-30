@@ -15,11 +15,19 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
+  // Extract callback URL early to avoid issues with useSearchParams
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
   // Check if already logged in
   useEffect(() => {
     async function checkSession() {
       try {
-        const response = await fetch("/api/auth/session");
+        const sessionId = typeof window !== 'undefined' ? localStorage.getItem("sessionId") : null;
+        const headers: HeadersInit = {};
+        if (sessionId) {
+          headers["Authorization"] = `Bearer ${sessionId}`;
+        }
+        const response = await fetch("/api/auth/session", { headers });
         if (!response.ok) {
           // API error - continue to show login form
           setIsCheckingSession(false);
@@ -27,8 +35,7 @@ function LoginForm() {
         }
         const data = await response.json();
         if (data.user) {
-          const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-          router.push(callbackUrl as any);
+          router.push(callbackUrl);
           return;
         }
       } catch (err) {
@@ -40,7 +47,7 @@ function LoginForm() {
     }
     checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount - searchParams changes handled in handleSubmit
+  }, []); // Only run once on mount - callbackUrl extracted before useEffect
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +55,6 @@ function LoginForm() {
     setError(null);
 
     try {
-      const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-      
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -81,7 +86,7 @@ function LoginForm() {
 
       // Success - store session ID in localStorage (no cookies)
       if (data.sessionId) {
-        localStorage.setItem("session_id", data.sessionId);
+        localStorage.setItem("sessionId", data.sessionId);
       }
 
       const redirectUrl = data.redirectTo || callbackUrl;
