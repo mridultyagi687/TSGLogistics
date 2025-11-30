@@ -38,7 +38,8 @@ export function RealtimeTicker({
   initialSnapshot,
   pollIntervalMs = 15000
 }: RealtimeTickerProps) {
-  const [snapshot, setSnapshot] = useState(initialSnapshot);
+  // Use functional initialization to prevent re-initialization on re-renders
+  const [snapshot, setSnapshot] = useState(() => initialSnapshot);
   const [error, setError] = useState<string | null>(null);
   const [usePolling, setUsePolling] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -91,26 +92,36 @@ export function RealtimeTicker({
   }, []);
 
   useEffect(() => {
-    if (!usePolling) {
+    if (!usePolling || !mounted) {
       return;
     }
 
     let isMounted = true;
+    let intervalId: NodeJS.Timeout | null = null;
 
     async function tick() {
+      // Double-check mount status before async operations
+      if (!isMounted) return;
+      
       try {
         const response = await fetch("/api/gateway/snapshot", {
-          cache: "no-store"
+          cache: "no-store",
+          signal: AbortSignal.timeout(5000) // 5 second timeout
         });
         if (!response.ok) {
           throw new Error(`Gateway snapshot failed with ${response.status}`);
         }
         const payload = (await response.json()) as GatewaySnapshot;
+        // Check mount status again before setting state
         if (isMounted) {
           setSnapshot(payload);
           setError(null);
         }
       } catch (err) {
+        // Ignore abort errors (timeout or unmount)
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
         if (isMounted) {
           setError(
             err instanceof Error ? err.message : "Unable to refresh snapshot."
@@ -119,14 +130,21 @@ export function RealtimeTicker({
       }
     }
 
+    // Initial tick
     tick();
 
-    const interval = setInterval(tick, pollIntervalMs);
+    // Set up interval only if still mounted
+    if (isMounted) {
+      intervalId = setInterval(tick, pollIntervalMs);
+    }
+
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [pollIntervalMs, usePolling]);
+  }, [pollIntervalMs, usePolling, mounted]);
 
   const loadCounts = useMemo(
     () => buildStatusCounts(snapshot.loads),
