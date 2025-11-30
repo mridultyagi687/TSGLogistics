@@ -43,11 +43,10 @@ wait_for_service() {
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
+echo "🚀 STARTUP SCRIPT EXECUTING: scripts/start-render.sh"
 echo "Working directory: $(pwd)"
 echo "Node version: $(node --version)"
 echo "NPM version: $(npm --version)"
-echo "=============================================="
-echo "STARTUP SCRIPT: scripts/start-render.sh"
 echo "=============================================="
 
 # Start Orders Service in background

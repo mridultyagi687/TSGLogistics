@@ -7,7 +7,7 @@ services:
     env: node
     plan: starter
     buildCommand: NODE_ENV=development npm install && npm run build:all
-    startCommand: chmod +x scripts/start-render.sh && bash scripts/start-render.sh
+    startCommand: /bin/bash -c "chmod +x scripts/start-render.sh && exec bash scripts/start-render.sh"
     envVars:
       - key: NODE_ENV
         value: production
