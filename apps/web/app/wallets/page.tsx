@@ -4,6 +4,9 @@ import { fetchWallets } from "../../lib/wallets";
 import { requireAuth } from "../../lib/require-auth";
 import { SwiggyCard, SwiggyButton, SwiggyBadge, SwiggyStatCard } from "../components/swiggy-ui";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Wallets | TSG Logistics"
 };

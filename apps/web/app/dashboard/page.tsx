@@ -11,6 +11,9 @@ import {
 } from "../components/swiggy-ui";
 import { formatDistanceToNow } from "date-fns";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "Dashboard | TSG Logistics"
 };

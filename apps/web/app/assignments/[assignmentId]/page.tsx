@@ -22,6 +22,9 @@ import {
   SwiggyTextarea
 } from "../../components/swiggy-ui";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface AssignmentDetailPageProps {
   params: { assignmentId: string };
 }

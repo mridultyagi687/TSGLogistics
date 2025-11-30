@@ -6,6 +6,9 @@ import { requireAuth } from "../../../lib/require-auth";
 import { SwiggyCard, SwiggyBadge } from "../../components/swiggy-ui";
 import { VendorCapabilitiesForm } from "./capabilities-form";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatAddress(address: { city: string; state: string; line1: string }) {
   return `${address.line1}, ${address.city}, ${address.state}`;
 }

@@ -6,6 +6,9 @@ import { getAllRoles, getRole } from "../../../lib/rbac";
 import { SwiggyCard, SwiggyButton, SwiggyBadge } from "../../components/swiggy-ui";
 import { RoleManagementClient } from "./role-management-client";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Role Management | TSG Logistics"
 };

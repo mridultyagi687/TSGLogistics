@@ -5,6 +5,9 @@ import { requireAdmin } from "../../../lib/require-permission";
 import { PERMISSIONS, ROLE_PERMISSIONS } from "../../../lib/permissions";
 import { SwiggyCard, SwiggyBadge } from "../../components/swiggy-ui";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Permission Management | TSG Logistics"
 };

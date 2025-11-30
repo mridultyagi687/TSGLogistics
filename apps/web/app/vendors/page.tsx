@@ -5,6 +5,9 @@ import { requireAuth } from "../../lib/require-auth";
 import { SwiggyCard, SwiggyButton, SwiggyBadge } from "../components/swiggy-ui";
 import { serviceTags } from "@tsg/shared";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Vendors | TSG Logistics"
 };

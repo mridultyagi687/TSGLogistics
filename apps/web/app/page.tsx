@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getPlatformStatus } from "../lib/status";
 import { SwiggyCard, SwiggyButton, SwiggyStatCard } from "./components/swiggy-ui";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const portals: Array<{ title: string; description: string; href: string; icon: string }> = [
   {
     title: "Loads Dashboard",

@@ -5,6 +5,9 @@ import { fetchWallet } from "../../../lib/wallets";
 import { requireAuth } from "../../../lib/require-auth";
 import { SwiggyCard, SwiggyBadge } from "../../components/swiggy-ui";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
