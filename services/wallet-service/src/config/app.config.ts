@@ -22,7 +22,8 @@ function getDatabaseUrl(schema: string): string {
 
 const configuration = () => ({
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  PORT: parseInt(process.env.WALLET_PORT ?? process.env.PORT ?? "4003", 10),
+  // Explicitly use WALLET_PORT - never use Render's PORT variable
+  PORT: process.env.WALLET_PORT ? parseInt(process.env.WALLET_PORT, 10) : 4003,
   APP_NAME: "TSG Wallet Service",
   DATABASE_URL: getDatabaseUrl("wallet")
 });

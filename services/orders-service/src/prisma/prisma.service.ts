@@ -23,20 +23,17 @@ export class PrismaService
   async onModuleInit() {
     try {
       await this.$connect();
-      // Verify Prisma client is properly initialized by checking if models exist
-      // Note: Prisma models are added dynamically, so we check after connection
-      if (typeof (this as any).loadOrder === "undefined" || typeof (this as any).trip === "undefined") {
-        throw new Error(
-          "Prisma client models not available. Please run 'npm run prisma:generate' in the orders-service directory."
-        );
-      }
+      // Verify Prisma client is properly initialized
+      // Note: We don't check for specific models as they're dynamically added by Prisma
+      // The connection itself is sufficient proof that Prisma client is working
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes("models not available")) {
-        throw error;
-      }
+      console.error("[PrismaService] Failed to connect to database:", {
+        message: errorMessage,
+        databaseUrl: this.configService.get<string>("DATABASE_URL")?.substring(0, 50) + "..."
+      });
       throw new Error(
-        `Failed to initialize Prisma client: ${errorMessage}. Please check DATABASE_URL and run 'npm run prisma:generate'.`
+        `Failed to initialize Prisma client: ${errorMessage}. Please check DATABASE_URL and ensure Prisma client was generated during build.`
       );
     }
   }

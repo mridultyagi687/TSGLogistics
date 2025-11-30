@@ -10,7 +10,10 @@ async function bootstrap() {
   app.enableCors({ origin: "*" });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>("PORT", 4003);
+  // Explicitly use WALLET_PORT - never use Render's PORT variable
+  const port = process.env.WALLET_PORT 
+    ? parseInt(process.env.WALLET_PORT, 10) 
+    : configService.get<number>("PORT", 4003);
 
   await app.listen(port, "0.0.0.0");
   Logger.log(`Wallet Service listening on http://0.0.0.0:${port}`, "Bootstrap");

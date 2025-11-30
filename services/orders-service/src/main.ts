@@ -13,7 +13,10 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>("PORT", 4001);
+  // Explicitly use ORDERS_PORT - never use Render's PORT variable
+  const port = process.env.ORDERS_PORT 
+    ? parseInt(process.env.ORDERS_PORT, 10) 
+    : configService.get<number>("PORT", 4001);
 
   await app.listen(port, "0.0.0.0");
   Logger.log(`Orders Service listening on http://0.0.0.0:${port}`, "Bootstrap");

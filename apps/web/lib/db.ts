@@ -222,12 +222,20 @@ async function ensureSearchPath() {
   
   try {
     const schema = getSchemaFromConnectionString();
-    await pool.query(`SET search_path TO ${schema}, public;`);
-    searchPathSet = true;
-    console.log(`[db] Set search_path to: ${schema}, public`);
+    // Only set search_path if we have a non-default schema
+    if (schema && schema !== "public") {
+      await pool.query(`SET search_path TO ${schema}, public;`);
+      searchPathSet = true;
+      console.log(`[db] Set search_path to: ${schema}, public`);
+    } else {
+      // Use default search_path (public)
+      searchPathSet = true;
+      console.log(`[db] Using default search_path (public)`);
+    }
   } catch (error: any) {
     console.error("[db] Failed to set search_path:", error?.message);
     // Continue anyway - might work with default schema
+    searchPathSet = true; // Don't keep retrying
   }
 }
 

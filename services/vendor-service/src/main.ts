@@ -10,7 +10,10 @@ async function bootstrap() {
   app.enableCors({ origin: "*" });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>("PORT", 4002);
+  // Explicitly use VENDOR_PORT - never use Render's PORT variable
+  const port = process.env.VENDOR_PORT 
+    ? parseInt(process.env.VENDOR_PORT, 10) 
+    : configService.get<number>("PORT", 4002);
 
   await app.listen(port, "0.0.0.0");
   Logger.log(`Vendor Service listening on http://0.0.0.0:${port}`, "Bootstrap");

@@ -22,7 +22,8 @@ function getDatabaseUrl(schema: string): string {
 
 const configuration = () => ({
   NODE_ENV: process.env.NODE_ENV ?? "development",
-  PORT: parseInt(process.env.ORDERS_PORT ?? process.env.PORT ?? "4001", 10),
+  // Explicitly use ORDERS_PORT - never use Render's PORT variable
+  PORT: process.env.ORDERS_PORT ? parseInt(process.env.ORDERS_PORT, 10) : 4001,
   APP_NAME: "TSG Orders Service",
   DATABASE_URL: getDatabaseUrl("orders"),
   SERVICES: {
