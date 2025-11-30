@@ -215,31 +215,22 @@ echo "🌐 Starting Next.js Web App (main process)..."
 echo ""
 
 # Use exec to replace the shell process with Next.js
-# CRITICAL: Next.js MUST use Render's PORT (automatically set by Render)
+# CRITICAL: Next.js MUST use Render's original PORT (saved at script start)
 # Do NOT use GATEWAY_PORT - that's for the Gateway service only
-# Save Render's PORT to avoid conflicts
-RENDER_PORT=${PORT}
-if [ -z "$RENDER_PORT" ]; then
-  echo "⚠️  WARNING: PORT environment variable not set by Render!"
-  echo "   This should not happen. Using default 10000."
-  RENDER_PORT=10000
-fi
 
 echo "🔍 Environment check before starting Next.js:"
-echo "   RENDER_PORT (saved): $RENDER_PORT"
+echo "   RENDER_ORIGINAL_PORT (saved at start): ${RENDER_ORIGINAL_PORT:-not set}"
 echo "   PORT (current): ${PORT:-not set}"
 echo "   GATEWAY_PORT: ${GATEWAY_PORT:-not set}"
 echo ""
 
-# CRITICAL: Unset ALL port-related env vars and explicitly set PORT
-# This ensures Next.js doesn't pick up GATEWAY_PORT or any other port
+# CRITICAL: Restore Render's original PORT and unset service ports
+# This ensures Next.js uses Render's PORT, not GATEWAY_PORT (4000)
+export PORT=$RENDER_ORIGINAL_PORT
 unset GATEWAY_PORT
-unset ORDERS_PORT
+unset ORDERS_PORT  
 unset VENDOR_PORT
 unset WALLET_PORT
-
-# Explicitly set PORT for Next.js
-export PORT=$RENDER_PORT
 
 echo "✅ Starting Next.js with PORT=$PORT"
 echo "   Gateway is already running on port 4000"
@@ -247,6 +238,5 @@ echo "   Next.js will run on Render's assigned port: $PORT"
 echo ""
 
 # Use exec to replace the shell process with Next.js
-# Pass PORT explicitly via environment variable
-exec env PORT=$RENDER_PORT npm run start --workspace apps/web
+exec npm run start --workspace apps/web
 
