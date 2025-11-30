@@ -11,13 +11,23 @@ echo "=============================================="
 
 # CRITICAL: Save Render's PORT immediately - Render sets this automatically
 # This must be done BEFORE any services start, as services might modify PORT
+# IMPORTANT: If Render's PORT conflicts with GATEWAY_PORT (4000), use fallback
+GATEWAY_PORT_VALUE=${GATEWAY_PORT:-4000}
+
 if [ -z "$PORT" ]; then
   echo "⚠️  WARNING: PORT environment variable not set by Render!"
   echo "   Render should set this automatically. Using default 10000."
   export RENDER_ORIGINAL_PORT=10000
 else
-  export RENDER_ORIGINAL_PORT=$PORT
-  echo "✅ Saved Render's PORT: $RENDER_ORIGINAL_PORT"
+  # Check if Render's PORT conflicts with Gateway port
+  if [ "$PORT" = "$GATEWAY_PORT_VALUE" ]; then
+    echo "⚠️  WARNING: Render's PORT ($PORT) conflicts with GATEWAY_PORT ($GATEWAY_PORT_VALUE)!"
+    echo "   Gateway needs port $GATEWAY_PORT_VALUE, Next.js will use 10000 instead."
+    export RENDER_ORIGINAL_PORT=10000
+  else
+    export RENDER_ORIGINAL_PORT=$PORT
+    echo "✅ Saved Render's PORT: $RENDER_ORIGINAL_PORT"
+  fi
 fi
 
 # Function to check if a port is in use
@@ -220,12 +230,12 @@ echo ""
 
 echo "🔍 Environment check before starting Next.js:"
 echo "   RENDER_ORIGINAL_PORT (saved at start): ${RENDER_ORIGINAL_PORT:-not set}"
-echo "   PORT (current): ${PORT:-not set}"
-echo "   GATEWAY_PORT: ${GATEWAY_PORT:-not set}"
+echo "   PORT (current, from Render): ${PORT:-not set}"
+echo "   GATEWAY_PORT: ${GATEWAY_PORT:-4000}"
 echo ""
 
-# CRITICAL: Restore Render's original PORT and unset service ports
-# This ensures Next.js uses Render's PORT, not GATEWAY_PORT (4000)
+# CRITICAL: Use RENDER_ORIGINAL_PORT (which may be adjusted if it conflicted)
+# Unset service ports to prevent Next.js from picking them up
 export PORT=$RENDER_ORIGINAL_PORT
 unset GATEWAY_PORT
 unset ORDERS_PORT  
@@ -233,8 +243,11 @@ unset VENDOR_PORT
 unset WALLET_PORT
 
 echo "✅ Starting Next.js with PORT=$PORT"
-echo "   Gateway is already running on port 4000"
-echo "   Next.js will run on Render's assigned port: $PORT"
+echo "   Gateway is running on port ${GATEWAY_PORT_VALUE:-4000}"
+echo "   Next.js will run on port: $PORT"
+if [ "$PORT" != "${PORT:-$RENDER_ORIGINAL_PORT}" ]; then
+  echo "   (Using fallback port - Render's PORT conflicted with Gateway)"
+fi
 echo ""
 
 # Use exec to replace the shell process with Next.js
