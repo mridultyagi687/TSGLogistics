@@ -9,6 +9,17 @@ set +e
 echo "🚀 Starting TSG Logistics Services on Render..."
 echo "=============================================="
 
+# CRITICAL: Save Render's PORT immediately - Render sets this automatically
+# This must be done BEFORE any services start, as services might modify PORT
+if [ -z "$PORT" ]; then
+  echo "⚠️  WARNING: PORT environment variable not set by Render!"
+  echo "   Render should set this automatically. Using default 10000."
+  export RENDER_ORIGINAL_PORT=10000
+else
+  export RENDER_ORIGINAL_PORT=$PORT
+  echo "✅ Saved Render's PORT: $RENDER_ORIGINAL_PORT"
+fi
+
 # Function to check if a port is in use
 check_port() {
   local port=$1
