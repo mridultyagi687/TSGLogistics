@@ -204,5 +204,6 @@ echo "🌐 Starting Next.js Web App (main process)..."
 echo ""
 
 # Use exec to replace the shell process with Next.js
-exec npm run start --workspace apps/web
+# Ensure Next.js uses Render's PORT (not 4000)
+PORT=${PORT:-10000} exec npm run start --workspace apps/web
 

@@ -13,8 +13,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for session cookie
-  const sessionId = request.cookies.get("session_id")?.value;
+  // Check for Authorization header (no cookies)
+  const authHeader = request.headers.get("authorization");
+  const sessionId = authHeader?.startsWith("Bearer ") 
+    ? authHeader.substring(7) 
+    : null;
 
   if (!sessionId) {
     // No session - redirect to login
@@ -26,7 +29,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Session cookie exists - allow request
+  // Session ID exists in header - allow request
   // Session validation happens in server components via requireAuth()
   return NextResponse.next();
 }

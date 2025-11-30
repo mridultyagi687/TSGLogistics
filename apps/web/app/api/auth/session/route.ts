@@ -15,12 +15,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Read cookie from request (works in API routes)
-    const sessionId = request.cookies.get("session_id")?.value;
+    // Read session ID from Authorization header (no cookies)
+    const authHeader = request.headers.get("authorization");
+    const sessionId = authHeader?.startsWith("Bearer ") 
+      ? authHeader.substring(7) 
+      : null;
 
     if (!sessionId) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Session API] No session_id cookie in request");
+        console.log("[Session API] No Authorization header with session ID");
       }
       return NextResponse.json({ user: null });
     }
@@ -35,10 +38,7 @@ export async function GET(request: NextRequest) {
       if (process.env.NODE_ENV === "development") {
         console.log("[Session API] Session not found or invalid");
       }
-      // Clear invalid session cookie
-      const response = NextResponse.json({ user: null });
-      response.cookies.delete("session_id");
-      return response;
+      return NextResponse.json({ user: null });
     }
 
     if (process.env.NODE_ENV === "development") {

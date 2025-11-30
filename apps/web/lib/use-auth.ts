@@ -26,17 +26,36 @@ export function useAuth() {
     
     async function fetchSession() {
       try {
-        const response = await fetch("/api/auth/session");
+        // Get session ID from localStorage and send in Authorization header
+        const sessionId = typeof window !== "undefined" 
+          ? localStorage.getItem("session_id") 
+          : null;
+        
+        const headers: Record<string, string> = {};
+        if (sessionId) {
+          headers["Authorization"] = `Bearer ${sessionId}`;
+        }
+
+        const response = await fetch("/api/auth/session", {
+          headers
+        });
         const data = await response.json();
         
         if (data.user) {
           setUser(data.user);
           setStatus("authenticated");
         } else {
+          // Clear invalid session ID
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("session_id");
+          }
           setUser(null);
           setStatus("unauthenticated");
         }
       } catch {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("session_id");
+        }
         setUser(null);
         setStatus("unauthenticated");
       }
@@ -47,7 +66,26 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      // Get session ID from localStorage and send in Authorization header
+      const sessionId = typeof window !== "undefined" 
+        ? localStorage.getItem("session_id") 
+        : null;
+      
+      const headers: Record<string, string> = {};
+      if (sessionId) {
+        headers["Authorization"] = `Bearer ${sessionId}`;
+      }
+
+      await fetch("/api/auth/logout", { 
+        method: "POST",
+        headers
+      });
+      
+      // Clear session ID from localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("session_id");
+      }
+      
       setUser(null);
       setStatus("unauthenticated");
       // Use window.location for navigation to avoid router context issues
@@ -56,6 +94,10 @@ export function useAuth() {
       }
     } catch (error) {
       console.error("Logout error:", error);
+      // Clear session ID even on error
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("session_id");
+      }
     }
   };
 

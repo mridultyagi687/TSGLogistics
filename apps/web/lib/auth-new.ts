@@ -5,7 +5,7 @@
 
 "use server";
 
-import { getCookie } from "./get-cookie";
+import { headers } from "next/headers";
 import { getSession } from "./auth-simple";
 import type { Role } from "./rbac";
 import { hasPermission } from "./rbac";
@@ -25,11 +25,16 @@ export interface SessionUser {
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
   try {
-    const sessionId = await getCookie("session_id");
+    // Get session ID from Authorization header (no cookies)
+    const headersList = await headers();
+    const authHeader = headersList.get("authorization");
+    const sessionId = authHeader?.startsWith("Bearer ") 
+      ? authHeader.substring(7) 
+      : null;
 
     if (!sessionId) {
       if (process.env.NODE_ENV === "development") {
-        console.log("[getCurrentUser] No session_id cookie found");
+        console.log("[getCurrentUser] No Authorization header with session ID");
       }
       return null;
     }

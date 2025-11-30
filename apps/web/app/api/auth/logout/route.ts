@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { deleteSession } from "../../../../lib/auth-simple";
-import { cookies } from "next/headers";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const sessionId = cookieStore.get("session_id")?.value;
+    // Read session ID from Authorization header (no cookies)
+    const authHeader = request.headers.get("authorization");
+    const sessionId = authHeader?.startsWith("Bearer ") 
+      ? authHeader.substring(7) 
+      : null;
 
     if (sessionId) {
       await deleteSession(sessionId);
     }
 
-    // Clear session cookie
-    cookieStore.delete("session_id");
-
+    // No cookie to clear - client will clear localStorage
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Logout error:", error);

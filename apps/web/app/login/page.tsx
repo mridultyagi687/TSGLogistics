@@ -59,8 +59,8 @@ function LoginForm() {
           username, 
           password,
           redirectTo: callbackUrl
-        }),
-        credentials: "include" // Important: include cookies in request and response
+        })
+        // No credentials - no cookies
       });
 
       const data = await response.json();
@@ -79,12 +79,13 @@ function LoginForm() {
         return;
       }
 
-      // Success - cookie is set in response, now redirect
-      // Use a small delay to ensure cookie is processed by browser
+      // Success - store session ID in localStorage (no cookies)
+      if (data.sessionId) {
+        localStorage.setItem("session_id", data.sessionId);
+      }
+
       const redirectUrl = data.redirectTo || callbackUrl;
-      setTimeout(() => {
-        window.location.href = redirectUrl;
-      }, 50);
+      window.location.href = redirectUrl;
     } catch (err) {
       console.error("Login error:", err);
       setError(

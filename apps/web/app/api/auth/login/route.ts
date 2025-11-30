@@ -87,10 +87,12 @@ export async function POST(request: NextRequest) {
     // Determine redirect URL
     const callbackUrl = redirectTo || "/dashboard";
 
-    // Create JSON response with cookie set
+    // Return session ID in response body (client will store in localStorage)
+    // No cookies - use Authorization header instead
     const response = NextResponse.json({
       success: true,
       redirectTo: callbackUrl,
+      sessionId: session.sessionId, // Client will store this in localStorage
       user: {
         id: session.userId,
         username: session.username,
@@ -99,15 +101,6 @@ export async function POST(request: NextRequest) {
         role: session.role,
         orgId: session.orgId,
       },
-    });
-    
-    // Set session cookie in the response
-    response.cookies.set("session_id", session.sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60, // 24 hours
-      path: "/",
     });
 
     console.log("[Login] Session created, redirecting to:", callbackUrl);

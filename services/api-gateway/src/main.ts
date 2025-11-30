@@ -17,8 +17,8 @@ async function bootstrap() {
       .map((origin) => origin.trim()) ?? [];
 
   app.enableCors({
-    origin: origins,
-    credentials: true
+    origin: origins
+    // No credentials - no cookies
   });
 
   // Explicitly use GATEWAY_PORT - never use Render's PORT variable
