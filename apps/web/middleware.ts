@@ -21,23 +21,23 @@ export async function middleware(request: NextRequest) {
 
   // Redirect backend URL to UI URL if configured
   // Only redirect if NEXT_PUBLIC_UI_URL is set (indicating separate UI service)
-  const uiUrl = process.env.NEXT_PUBLIC_UI_URL;
-  const backendHostname = process.env.BACKEND_HOSTNAME || "tsglogistics.onrender.com";
-  
-  // Check if this is the backend URL and redirect to UI URL
-  // Don't redirect API endpoints - they should be accessible on backend
-  const isApiEndpoint = pathname.startsWith("/api/");
-  
-  if (uiUrl && !isApiEndpoint && (hostname === backendHostname || hostname.includes(backendHostname))) {
-    // Only redirect if we're not already on the UI URL
-    if (!hostname.includes("tsglogistics-ui.onrender.com")) {
-      try {
-        const uiUrlObj = new URL(uiUrl);
-        const redirectUrl = new URL(pathname + request.nextUrl.search, uiUrlObj.origin);
-        return NextResponse.redirect(redirectUrl, 308); // 308 Permanent Redirect
-      } catch (e) {
-        // If URL parsing fails, continue with normal flow
-        console.error("Failed to parse UI URL for redirect:", e);
+  // NEVER redirect root path or API endpoints
+  if (pathname !== "/" && !pathname.startsWith("/api/")) {
+    const uiUrl = process.env.NEXT_PUBLIC_UI_URL;
+    const backendHostname = process.env.BACKEND_HOSTNAME || "tsglogistics.onrender.com";
+    
+    // Check if this is the backend URL and redirect to UI URL
+    if (uiUrl && (hostname === backendHostname || hostname.includes(backendHostname))) {
+      // Only redirect if we're not already on the UI URL
+      if (!hostname.includes("tsglogistics-ui.onrender.com")) {
+        try {
+          const uiUrlObj = new URL(uiUrl);
+          const redirectUrl = new URL(pathname + request.nextUrl.search, uiUrlObj.origin);
+          return NextResponse.redirect(redirectUrl, 308); // 308 Permanent Redirect
+        } catch (e) {
+          // If URL parsing fails, continue with normal flow
+          console.error("Failed to parse UI URL for redirect:", e);
+        }
       }
     }
   }
