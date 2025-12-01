@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from "react-dom";
+import { useEffect, useRef } from "react";
 import { createLoadAction } from "./actions";
 import type { CreateLoadFormState } from "./actions";
 import { SwiggyCard, SwiggyButton, SwiggyInput } from "../components/swiggy-ui";
@@ -18,10 +19,27 @@ const initialCreateLoadState: CreateLoadFormState = { status: "idle" };
 
 export function CreateLoadForm() {
   const [state, formAction] = useFormState(createLoadAction, initialCreateLoadState);
+  const formRef = useRef<HTMLFormElement>(null);
+  
+  // Reset form after successful creation
+  useEffect(() => {
+    if (state.status === "success" && formRef.current) {
+      // Reset form after a short delay to show success message
+      const timer = setTimeout(() => {
+        formRef.current?.reset();
+        // Update reference code to new timestamp
+        const refInput = formRef.current?.querySelector('input[name="referenceCode"]') as HTMLInputElement;
+        if (refInput) {
+          refInput.value = `LD-${Date.now()}`;
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.status]);
 
   return (
     <SwiggyCard>
-      <form action={formAction} className="space-y-6">
+      <form ref={formRef} action={formAction} className="space-y-6">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create Load Draft</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
