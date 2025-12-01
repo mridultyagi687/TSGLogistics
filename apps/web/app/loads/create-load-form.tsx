@@ -255,12 +255,12 @@ export function CreateLoadForm() {
                 : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
             }`}
           >
-            {state.message || "An error occurred"}
-            {state.status === "error" && state.message && (
-              state.message.includes("service") || 
+            {state.message || (state.status === "error" ? "An error occurred" : "Processing...")}
+            {state.status === "error" && 
+             state.message && 
+             (state.message.includes("service") || 
               state.message.includes("Gateway") || 
-              state.message.includes("unavailable")
-            ) && (
+              state.message.includes("unavailable")) && (
               <div className="mt-2 text-xs font-normal opacity-90">
                 Please check if the API Gateway (port 4000) and Orders Service (port 4001) are running.
               </div>
