@@ -8,6 +8,17 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get("host") || "";
 
+  // Always allow root path immediately
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
+
+  // Allow all public paths immediately (before any redirect logic)
+  const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
+
   // Redirect backend URL to UI URL if configured
   // Only redirect if NEXT_PUBLIC_UI_URL is set (indicating separate UI service)
   const uiUrl = process.env.NEXT_PUBLIC_UI_URL;
@@ -29,12 +40,6 @@ export async function middleware(request: NextRequest) {
         console.error("Failed to parse UI URL for redirect:", e);
       }
     }
-  }
-
-  // Allow public paths
-  const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-  if (isPublicPath) {
-    return NextResponse.next();
   }
 
   // Check for Authorization header (no cookies)
